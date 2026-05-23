@@ -5,34 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GBA on Ray-Ban</title>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: black;
-      color: white;
-      font-family: system-ui;
-      overflow: hidden;
-      touch-action: none;
-    }
-    #container {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      align-items: center;
-      justify-content: center;
-    }
-    canvas {
-      image-rendering: pixelated;
-      max-width: 100%;
-      max-height: 70%;
-      border: 2px solid #555;
-    }
-    #status {
-      margin-top: 20px;
-      font-size: 15px;
-      text-align: center;
-    }
-    input { margin-top: 15px; }
+    body { margin:0; padding:0; background:black; color:white; font-family:system-ui; overflow:hidden; touch-action:none; }
+    #container { display:flex; flex-direction:column; height:100vh; align-items:center; justify-content:center; }
+    canvas { image-rendering:pixelated; max-width:100%; max-height:65%; border:2px solid #666; background:#000; }
+    #status { margin-top:20px; font-size:15px; text-align:center; line-height:1.4; }
+    input { margin-top:15px; }
   </style>
 </head>
 <body>
@@ -40,7 +17,7 @@
     <h2>GBA Emulator</h2>
     <canvas id="screen" width="240" height="160"></canvas>
     <div id="status">Loading ROM...</div>
-    <input type="file" id="romInput" accept=".gba" style="margin-top: 15px;">
+    <input type="file" id="romInput" accept=".gba">
   </div>
 
   <script src="https://cdn.jsdelivr.net/gh/andychase/gbajs2@master/js/gbajs2.js"></script>
@@ -53,52 +30,60 @@
     let emulator = new GameBoyAdvance();
     emulator.setCanvas(canvas);
 
-    const romFileName = "pokemon.gba";   // ← Change to your exact filename
+    const romFileName = "pokemon.gba";   // ←←← MUST match exact filename + extension
 
     async function loadROMFromURL() {
+      status.textContent = `Fetching ${romFileName}...`;
+      console.log("Starting fetch for:", romFileName);
+
       try {
-        status.textContent = `Trying to load ${romFileName}...`;
-        
-        const response = await fetch(romFileName, { cache: 'no-store' });
-        
+        // Timeout after 15 seconds
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        const response = await fetch(romFileName, { 
+          cache: 'no-store',
+          signal: controller.signal 
+        });
+
+        clearTimeout(timeoutId);
+
+        console.log("Response status:", response.status);
+
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status} - File not found`);
+          throw new Error(`HTTP error! Status: ${response.status}`);
         }
 
+        status.textContent = "Downloading ROM data...";
         const arrayBuffer = await response.arrayBuffer();
-        
-        status.textContent = "ROM loaded successfully! Starting emulator...";
+
+        console.log("ROM size:", arrayBuffer.byteLength, "bytes");
+
+        status.textContent = "ROM loaded! Starting emulator...";
         emulator.loadROM(arrayBuffer);
         emulator.run();
-        
-        setTimeout(() => status.style.display = "none", 2500);
+
+        setTimeout(() => status.style.display = "none", 2000);
       } catch (err) {
-        console.error(err);
-        status.innerHTML = `Failed to load ROM.<br><small>${err.message}</small><br><br>Use the file picker below instead.`;
+        console.error("Load error:", err);
+        status.innerHTML = `Failed to load ROM.<br><small>${err.message}</small><br><br>Try the file picker below.`;
       }
     }
 
-    // Fallback: Manual file upload
+    // Manual fallback
     romInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
-
-      status.textContent = "Loading selected ROM...";
+      status.textContent = "Loading from file...";
       const reader = new FileReader();
-      reader.onload = function(ev) {
-        try {
-          emulator.loadROM(ev.target.result);
-          emulator.run();
-          status.textContent = "ROM loaded from file!";
-          setTimeout(() => status.style.display = "none", 2000);
-        } catch (err) {
-          status.textContent = "Error starting emulator.";
-        }
+      reader.onload = (ev) => {
+        emulator.loadROM(ev.target.result);
+        emulator.run();
+        status.textContent = "Loaded from file!";
       };
       reader.readAsArrayBuffer(file);
     });
 
-    // Try auto-load first
     window.onload = loadROMFromURL;
   </script>
 </body>
