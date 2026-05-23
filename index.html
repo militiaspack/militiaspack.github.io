@@ -18,7 +18,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      image-rendering: pixelated;
     }
 
     #container {
@@ -49,18 +48,10 @@
       max-width: 96%;
     }
 
-    #controls {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-
     #status {
       font-size: 13px;
-      margin: 10px 0;
-      min-height: 20px;
+      margin: 15px 0;
+      min-height: 22px;
     }
 
     input[type="file"] {
@@ -81,33 +72,12 @@
       font-family: inherit;
       font-size: 12px;
       cursor: pointer;
-      margin: 0 5px;
+      margin: 5px;
     }
 
     .btn:hover {
       background: #0f0;
       color: #000;
-    }
-
-    .scanlines {
-      position: relative;
-    }
-
-    .scanlines::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: repeating-linear-gradient(
-        transparent 0px,
-        transparent 2px,
-        rgba(0, 255, 0, 0.07) 2px,
-        rgba(0, 255, 0, 0.07) 4px
-      );
-      pointer-events: none;
-      border-radius: 4px;
     }
   </style>
 </head>
@@ -116,28 +86,20 @@
     <h1>GBA ON RAY-BAN</h1>
     <p class="subtitle">RETRO GAMING • 2026</p>
 
-    <div class="scanlines">
-      <canvas id="screen" width="240" height="160"></canvas>
+    <canvas id="screen" width="240" height="160"></canvas>
+
+    <div id="status">Loading Emulator...</div>
+
+    <input type="file" id="romInput" accept=".gba">
+
+    <div>
+      <button class="btn" id="pauseBtn">PAUSE</button>
+      <button class="btn" id="resetBtn">RESET</button>
     </div>
-
-    <div id="status">Emulator Ready • Load a .gba ROM</div>
-
-    <div id="controls">
-      <input type="file" id="romInput" accept=".gba">
-      
-      <div>
-        <button class="btn" id="pauseBtn">PAUSE</button>
-        <button class="btn" id="resetBtn">RESET</button>
-      </div>
-    </div>
-
-    <p style="margin-top: 25px; font-size: 10px; color: #444;">
-      Tip: Works best on desktop. Touch controls coming soon.
-    </p>
   </div>
 
-  <!-- Emulator Script -->
-  <script src="gba.js"></script>
+  <!-- GBA.js Emulator from CDN -->
+  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs@master/gbajs.js"></script>
 
   <script>
     const canvas = document.getElementById('screen');
@@ -149,31 +111,34 @@
     let emulator;
     let isPaused = false;
 
-    // Initialize Emulator
-    function initEmulator() {
+    // Initialize
+    function init() {
       try {
         emulator = new GameBoyAdvance();
         emulator.setCanvas(canvas);
-        status.textContent = "✅ Emulator Ready - Load ROM";
+        
+        // Optional: Set BIOS if you have one (many games need it)
+        // emulator.setBios(yourBiosArrayBuffer);
+
+        status.textContent = "✅ Emulator Ready - Select .gba ROM";
       } catch (e) {
-        status.textContent = "❌ Failed to initialize emulator";
+        status.textContent = "❌ Failed to init emulator";
         console.error(e);
       }
     }
 
-    // Load ROM
     romInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
       status.textContent = "Loading ROM...";
-      
+
       const reader = new FileReader();
-      reader.onload = function(ev) {
+      reader.onload = (ev) => {
         try {
           emulator.loadROM(ev.target.result);
           emulator.run();
-          status.textContent = "🎮 " + file.name + " running";
+          status.textContent = `🎮 ${file.name} running`;
           isPaused = false;
         } catch (err) {
           status.textContent = "❌ Error loading ROM";
@@ -183,30 +148,26 @@
       reader.readAsArrayBuffer(file);
     });
 
-    // Pause / Resume
     pauseBtn.addEventListener('click', () => {
       if (!emulator) return;
       isPaused = !isPaused;
       if (isPaused) {
         emulator.pause();
         pauseBtn.textContent = "RESUME";
-        status.textContent = "⏸️ Paused";
       } else {
         emulator.run();
         pauseBtn.textContent = "PAUSE";
-        status.textContent = "🎮 Game Running";
       }
     });
 
-    // Reset
     resetBtn.addEventListener('click', () => {
-      if (!emulator) return;
-      emulator.reset();
-      status.textContent = "🔄 Reset Complete";
+      if (emulator) {
+        emulator.reset();
+        status.textContent = "🔄 Reset";
+      }
     });
 
-    // Initialize on load
-    window.onload = initEmulator;
+    window.onload = init;
   </script>
 </body>
 </html>
