@@ -5,87 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GBA on Ray-Ban</title>
   <style>
-    body { margin:0; padding:0; background:#000; color:#0f0; font-family:monospace; overflow:hidden; touch-action:none; }
-    #container { display:flex; flex-direction:column; height:100vh; align-items:center; justify-content:center; }
-    canvas { image-rendering:pixelated; max-width:100%; max-height:60%; border:2px solid #0f0; background:#111; }
-    #status { margin-top:20px; font-size:16px; text-align:center; line-height:1.5; max-width:90%; }
-    #debug { margin-top:10px; font-size:12px; color:#aaa; }
+    body { margin:0; padding:0; background:black; color:white; font-family:system-ui; overflow:hidden; touch-action:none; }
+    #container { display:flex; flex-direction:column; height:100vh; align-items:center; justify-content:center; gap:15px; }
+    canvas { image-rendering:pixelated; border:3px solid #666; background:#000; max-width:95%; max-height:65%; }
+    #status { font-size:15px; text-align:center; }
   </style>
 </head>
 <body>
   <div id="container">
-    <h2>GBA Emulator - Ray-Ban</h2>
+    <h2>GBA Emulator</h2>
     <canvas id="screen" width="240" height="160"></canvas>
-    <div id="status">Initializing...</div>
-    <div id="debug"></div>
-    <input type="file" id="romInput" accept=".gba" style="margin-top:15px;">
+    <div id="status">Select your ROM below</div>
+    <input type="file" id="romInput" accept=".gba">
   </div>
 
-  <!-- Try a different CDN source for gbajs2 -->
-  <script src="https://cdn.jsdelivr.net/gh/andychase/gbajs2@master/js/gbajs2.js"></script>
+  <script src="gba.js"></script>
 
   <script>
-    const status = document.getElementById('status');
-    const debug = document.getElementById('debug');
     const canvas = document.getElementById('screen');
+    const status = document.getElementById('status');
     const romInput = document.getElementById('romInput');
 
-    function log(msg) {
-      console.log(msg);
-      debug.innerHTML += msg + "<br>";
+    let emulator;
+
+    try {
+      emulator = new GameBoyAdvance();
+      emulator.setCanvas(canvas);
+      status.textContent = "Emulator ready - select ROM";
+    } catch (e) {
+      status.textContent = "Emulator failed to initialize";
+      console.error(e);
     }
 
-    log("Script started");
-
-    // Wait a bit for the library to load
-    setTimeout(() => {
-      if (typeof GameBoyAdvance === "undefined") {
-        status.innerHTML = "ERROR: Emulator library failed to load.<br>Try refreshing or different browser.";
-        log("GameBoyAdvance not found - CDN issue likely");
-        return;
-      }
-
-      log("Library loaded successfully");
-      status.textContent = "Library OK. Loading ROM...";
-
-      const romFileName = "pokemon.gba";   // ← Change to exact filename
-
-      fetch(romFileName, { cache: 'no-store' })
-        .then(response => {
-          log("Fetch response: " + response.status);
-          if (!response.ok) throw new Error("HTTP " + response.status);
-          return response.arrayBuffer();
-        })
-        .then(buffer => {
-          log("ROM downloaded, size: " + buffer.byteLength + " bytes");
-          status.textContent = "ROM loaded! Starting...";
-
-          const emulator = new GameBoyAdvance();
-          emulator.setCanvas(canvas);
-          emulator.loadROM(buffer);
-          emulator.run();
-
-          setTimeout(() => status.style.display = "none", 1500);
-        })
-        .catch(err => {
-          console.error(err);
-          log("Error: " + err.message);
-          status.innerHTML = `Failed to load ROM.<br>${err.message}<br><br>Use file picker below.`;
-        });
-    }, 800);
-
-    // Manual file fallback
-    romInput.addEventListener('change', e => {
+    romInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      status.textContent = "Loading from file...";
+
+      status.textContent = "Loading ROM...";
       const reader = new FileReader();
-      reader.onload = ev => {
-        const emulator = new GameBoyAdvance();
-        emulator.setCanvas(canvas);
-        emulator.loadROM(ev.target.result);
-        emulator.run();
-        status.textContent = "Game started from file!";
+      reader.onload = function(ev) {
+        try {
+          emulator.loadROM(ev.target.result);
+          emulator.run();
+          status.textContent = "✅ Game running!";
+        } catch (err) {
+          status.textContent = "Error starting game";
+          console.error(err);
+        }
       };
       reader.readAsArrayBuffer(file);
     });
