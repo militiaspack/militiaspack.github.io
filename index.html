@@ -1,202 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>GBA on Ray-Ban</title>
+async function initEmulator() {
+  emulator = new GBAjs3({
+    canvas: canvas,
+    volume: 0,
+  });
 
-  <style>
-    body {
-      margin:0;
-      padding:0;
-      background:#000;
-      overflow:hidden;
-      font-family:sans-serif;
+  try {
+    // OPTIONAL BIOS
+    // await emulator.loadBios('gba_bios.bin');
+
+    // Load ROM from same folder
+    const response = await fetch('./pokemon.gba');
+
+    const romBuffer = await response.arrayBuffer();
+
+    // Load into emulator
+    await emulator.loadROM(romBuffer);
+
+    // Some emulator builds require start()
+    if (emulator.start) {
+      emulator.start();
     }
 
-    #screen {
-      width:100vw;
-      height:100vh;
-      image-rendering: pixelated;
-    }
+    console.log("Pokemon loaded successfully!");
 
-    #ui {
-      position:absolute;
-      top:10px;
-      left:10px;
-      color:white;
-      z-index:10;
-      background:rgba(0,0,0,0.5);
-      padding:8px;
-      border-radius:8px;
-    }
-
-    button {
-      margin-top:6px;
-      padding:6px 10px;
-      border:none;
-      border-radius:6px;
-      background:#1e90ff;
-      color:white;
-      font-size:14px;
-    }
-
-    input[type=file] {
-      display:none;
-    }
-  </style>
-</head>
-<body>
-
-  <canvas id="screen"></canvas>
-
-  <div id="ui">
-    <div>GBA on Ray-Ban • Swipe = D-Pad</div>
-
-    <button id="loadBtn">Load ROM</button>
-    <input type="file" id="romInput" accept=".gba">
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/gh/thenick775/gbajs3@master/dist/gbajs3.min.js"></script>
-
-  <script>
-    const canvas = document.getElementById('screen');
-    const romInput = document.getElementById('romInput');
-    const loadBtn = document.getElementById('loadBtn');
-
-    let emulator;
-
-    async function initEmulator() {
-      emulator = new GBAjs3({
-        canvas: canvas,
-        volume: 0.8,
-      });
-
-      console.log("GBA Emulator ready!");
-    }
-
-    initEmulator();
-
-    // ===============================
-    // ROM LOADING
-    // ===============================
-
-    loadBtn.addEventListener('click', () => {
-      romInput.click();
-    });
-
-    romInput.addEventListener('change', async (event) => {
-      const file = event.target.files[0];
-
-      if (!file) return;
-
-      const reader = new FileReader();
-
-      reader.onload = async function(e) {
-        const romBuffer = e.target.result;
-
-        try {
-          // Depending on gbaJS3 version:
-          await emulator.loadROM(romBuffer);
-
-          console.log("ROM loaded:", file.name);
-        } catch (err) {
-          console.error("Failed to load ROM:", err);
-        }
-      };
-
-      reader.readAsArrayBuffer(file);
-    });
-
-    // ===============================
-    // GESTURE CONTROLS
-    // ===============================
-
-    let lastTap = 0;
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let holdTimer;
-
-    canvas.addEventListener('touchstart', e => {
-      const touch = e.touches[0];
-
-      touchStartX = touch.clientX;
-      touchStartY = touch.clientY;
-
-      holdTimer = setTimeout(() => {
-        emulator.keyDown('start');
-      }, 500);
-    });
-
-    canvas.addEventListener('touchend', e => {
-      clearTimeout(holdTimer);
-      emulator.keyUp('start');
-
-      const touch = e.changedTouches[0];
-
-      const deltaX = touch.clientX - touchStartX;
-      const deltaY = touch.clientY - touchStartY;
-
-      const absX = Math.abs(deltaX);
-      const absY = Math.abs(deltaY);
-
-      const now = Date.now();
-
-      // Double tap = B
-      if (now - lastTap < 300) {
-        emulator.keyDown('b');
-
-        setTimeout(() => {
-          emulator.keyUp('b');
-        }, 50);
-
-        lastTap = 0;
-        return;
-      }
-
-      lastTap = now;
-
-      // Single tap = A
-      if (absX < 30 && absY < 30) {
-        emulator.keyDown('a');
-
-        setTimeout(() => {
-          emulator.keyUp('a');
-        }, 60);
-      }
-
-      // Horizontal swipe
-      else if (absX > absY && absX > 40) {
-
-        if (deltaX > 0) {
-          emulator.keyDown('right');
-        } else {
-          emulator.keyDown('left');
-        }
-
-        setTimeout(() => {
-          emulator.keyUp('right');
-          emulator.keyUp('left');
-        }, 100);
-      }
-
-      // Vertical swipe
-      else if (absY > absX && absY > 40) {
-
-        if (deltaY > 0) {
-          emulator.keyDown('down');
-        } else {
-          emulator.keyDown('up');
-        }
-
-        setTimeout(() => {
-          emulator.keyUp('down');
-          emulator.keyUp('up');
-        }, 100);
-      }
-    });
-
-  </script>
-</body>
-</html>
+  } catch (err) {
+    console.error("Failed to load ROM:", err);
+  }
+}
