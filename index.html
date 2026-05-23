@@ -2,64 +2,60 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0">
 
-  <title>GBA on Ray-Ban</title>
+  <meta name="viewport"
+        content="width=device-width,
+                 initial-scale=1.0,
+                 maximum-scale=1.0,
+                 user-scalable=no">
+
+  <title>Pokemon on Ray-Ban</title>
 
   <style>
+
     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
     body {
       margin: 0;
       padding: 0;
-      background: #0a0a0a;
-      color: #0f0;
-      font-family: 'Press Start 2P', system-ui;
-      height: 100vh;
+      background: #000;
+      overflow: hidden;
+
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
+
+      width: 100vw;
+      height: 100vh;
+
+      font-family: 'Press Start 2P', monospace;
+      color: #00ff66;
     }
 
     #container {
       text-align: center;
-      max-width: 560px;
       width: 100%;
     }
 
     h1 {
-      font-size: 18px;
-      margin-bottom: 6px;
-      text-shadow: 0 0 10px #0f0;
-      letter-spacing: 2px;
-    }
-
-    .subtitle {
-      font-size: 11px;
-      color: #555;
-      margin-bottom: 15px;
-    }
-
-    #game {
-      border: 6px solid #222;
-      border-radius: 4px;
-      background: #000;
-      box-shadow: 0 0 40px rgba(0, 255, 0, 0.25);
-
-      width: 100%;
-      max-width: 480px;
-      height: 320px;
-
-      image-rendering: pixelated;
+      font-size: 16px;
+      margin-bottom: 12px;
+      text-shadow: 0 0 10px #00ff66;
     }
 
     #status {
-      font-size: 13px;
-      margin: 15px 0;
-      min-height: 22px;
+      font-size: 10px;
+      color: #888;
+      margin-bottom: 12px;
     }
+
+    #game {
+      width: 100vw;
+      height: 100vh;
+      image-rendering: pixelated;
+      background: black;
+    }
+
   </style>
 </head>
 
@@ -67,50 +63,56 @@
 
   <div id="container">
 
-    <h1>GBA ON RAY-BAN</h1>
-
-    <p class="subtitle">
-      RETRO GAMING • 2026
-    </p>
-
-    <div id="game"></div>
+    <h1>POKEMON GBA</h1>
 
     <div id="status">
       Loading Pokémon...
     </div>
 
+    <div id="game"></div>
+
   </div>
 
   <script>
-    // =====================================
-    // EmulatorJS CONFIG
-    // =====================================
 
-    EJS_player = '#game';
+    // =========================================
+    // EMULATORJS CONFIG
+    // =========================================
 
-    EJS_core = 'gba';
+    EJS_player = "#game";
+
+    EJS_core = "gba";
 
     EJS_pathtodata =
-      'https://cdn.emulatorjs.org/stable/data/';
+      "https://cdn.emulatorjs.org/stable/data/";
 
-    // AUTO LOAD ROM
-    EJS_gameUrl = './pokemon.gba';
+    // ROM beside index.html
+    EJS_gameUrl = "./pokemon.gba";
 
     // Optional BIOS
-    // EJS_biosUrl = './gba_bios.bin';
+    // EJS_biosUrl = "./gba_bios.bin";
 
-    // Optional save support
     EJS_startOnLoaded = true;
 
-    // Disable on-screen controls
+    // Cleaner UI
     EJS_disableDatabases = true;
-
-    // Hide unnecessary UI
     EJS_hideSettings = true;
+    EJS_Buttons = {
+      playPause: false,
+      restart: false,
+      mute: false,
+      settings: false,
+      fullscreen: false,
+      saveState: false,
+      loadState: false,
+      screenRecord: false,
+      gamepad: false,
+      cheats: false
+    };
 
-    // =====================================
-    // Status Handling
-    // =====================================
+    // =========================================
+    // STATUS
+    // =========================================
 
     window.addEventListener('load', () => {
 
@@ -121,10 +123,222 @@
         'Starting Pokémon...';
 
     });
+
   </script>
 
-  <!-- EmulatorJS Loader -->
+  <!-- EmulatorJS -->
   <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
+
+  <script>
+
+    // =========================================
+    // WAIT FOR EMULATOR
+    // =========================================
+
+    function waitForEmulator() {
+
+      if (!window.EJS_emulator ||
+          !EJS_emulator.gameManager) {
+
+        setTimeout(waitForEmulator, 500);
+        return;
+      }
+
+      console.log("Emulator Ready");
+
+      setupControls();
+    }
+
+    waitForEmulator();
+
+    // =========================================
+    // CONTROL SYSTEM
+    // =========================================
+
+    function tapKey(key) {
+
+      try {
+
+        EJS_emulator
+          .gameManager
+          .controls
+          .pressKey(key);
+
+        setTimeout(() => {
+
+          EJS_emulator
+            .gameManager
+            .controls
+            .releaseKey(key);
+
+        }, 80);
+
+      } catch (err) {
+
+        console.error(err);
+
+      }
+    }
+
+    function setupControls() {
+
+      const game =
+        document.getElementById('game');
+
+      let touchStartX = 0;
+      let touchStartY = 0;
+
+      let lastTap = 0;
+
+      let holdTimer;
+
+      // =====================================
+      // TOUCH START
+      // =====================================
+
+      game.addEventListener(
+        'touchstart',
+        (e) => {
+
+          const touch = e.touches[0];
+
+          touchStartX = touch.clientX;
+          touchStartY = touch.clientY;
+
+          // HOLD = START
+          holdTimer = setTimeout(() => {
+
+            tapKey('START');
+
+          }, 500);
+
+        },
+        { passive: true }
+      );
+
+      // =====================================
+      // TOUCH END
+      // =====================================
+
+      game.addEventListener(
+        'touchend',
+        (e) => {
+
+          clearTimeout(holdTimer);
+
+          const touch =
+            e.changedTouches[0];
+
+          const deltaX =
+            touch.clientX - touchStartX;
+
+          const deltaY =
+            touch.clientY - touchStartY;
+
+          const absX =
+            Math.abs(deltaX);
+
+          const absY =
+            Math.abs(deltaY);
+
+          const now = Date.now();
+
+          // =================================
+          // DOUBLE TAP = B
+          // =================================
+
+          if (now - lastTap < 300) {
+
+            tapKey('B');
+
+            lastTap = 0;
+            return;
+          }
+
+          lastTap = now;
+
+          // =================================
+          // TAP = A
+          // =================================
+
+          if (absX < 20 && absY < 20) {
+
+            tapKey('A');
+            return;
+          }
+
+          // =================================
+          // SWIPE HORIZONTAL
+          // =================================
+
+          if (absX > absY) {
+
+            if (deltaX > 0) {
+
+              tapKey('RIGHT');
+
+            } else {
+
+              tapKey('LEFT');
+
+            }
+
+            return;
+          }
+
+          // =================================
+          // SWIPE VERTICAL
+          // =================================
+
+          if (deltaY > 0) {
+
+            tapKey('DOWN');
+
+          } else {
+
+            tapKey('UP');
+
+          }
+
+        },
+        { passive: true }
+      );
+
+      // =====================================
+      // KEYBOARD TESTING
+      // =====================================
+
+      document.addEventListener(
+        'keydown',
+        (e) => {
+
+          if (e.key === 'ArrowUp')
+            tapKey('UP');
+
+          if (e.key === 'ArrowDown')
+            tapKey('DOWN');
+
+          if (e.key === 'ArrowLeft')
+            tapKey('LEFT');
+
+          if (e.key === 'ArrowRight')
+            tapKey('RIGHT');
+
+          if (e.key === 'z')
+            tapKey('A');
+
+          if (e.key === 'x')
+            tapKey('B');
+
+          if (e.key === 'Enter')
+            tapKey('START');
+
+        }
+      );
+
+    }
+
+  </script>
 
 </body>
 </html>
