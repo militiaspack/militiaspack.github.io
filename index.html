@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
   <title>GBA on Ray-Ban</title>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
@@ -13,39 +16,43 @@
       background: #0a0a0a;
       color: #0f0;
       font-family: 'Press Start 2P', system-ui;
-      overflow: hidden;
       height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
     }
 
     #container {
       text-align: center;
+      max-width: 560px;
       width: 100%;
-      max-width: 520px;
     }
 
     h1 {
       font-size: 18px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       text-shadow: 0 0 10px #0f0;
       letter-spacing: 2px;
     }
 
     .subtitle {
       font-size: 11px;
-      color: #666;
-      margin-bottom: 20px;
+      color: #555;
+      margin-bottom: 15px;
     }
 
-    canvas {
-      image-rendering: pixelated;
-      border: 6px solid #333;
+    #game {
+      border: 6px solid #222;
       border-radius: 4px;
       background: #000;
-      box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
-      max-width: 96%;
+      box-shadow: 0 0 40px rgba(0, 255, 0, 0.25);
+
+      width: 100%;
+      max-width: 480px;
+      height: 320px;
+
+      image-rendering: pixelated;
     }
 
     #status {
@@ -53,121 +60,71 @@
       margin: 15px 0;
       min-height: 22px;
     }
-
-    input[type="file"] {
-      background: #111;
-      color: #0f0;
-      border: 2px solid #333;
-      padding: 10px;
-      font-family: inherit;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    .btn {
-      background: #111;
-      color: #0f0;
-      border: 2px solid #0f0;
-      padding: 10px 20px;
-      font-family: inherit;
-      font-size: 12px;
-      cursor: pointer;
-      margin: 5px;
-    }
-
-    .btn:hover {
-      background: #0f0;
-      color: #000;
-    }
   </style>
 </head>
+
 <body>
+
   <div id="container">
+
     <h1>GBA ON RAY-BAN</h1>
-    <p class="subtitle">RETRO GAMING • 2026</p>
 
-    <canvas id="screen" width="240" height="160"></canvas>
+    <p class="subtitle">
+      RETRO GAMING • 2026
+    </p>
 
-    <div id="status">Loading Emulator...</div>
+    <div id="game"></div>
 
-    <input type="file" id="romInput" accept=".gba">
-
-    <div>
-      <button class="btn" id="pauseBtn">PAUSE</button>
-      <button class="btn" id="resetBtn">RESET</button>
+    <div id="status">
+      Loading Pokémon...
     </div>
+
   </div>
 
-  <!-- GBA.js Emulator from CDN -->
-  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs@master/gbajs.js"></script>
-
   <script>
-    const canvas = document.getElementById('screen');
-    const status = document.getElementById('status');
-    const romInput = document.getElementById('romInput');
-    const pauseBtn = document.getElementById('pauseBtn');
-    const resetBtn = document.getElementById('resetBtn');
+    // =====================================
+    // EmulatorJS CONFIG
+    // =====================================
 
-    let emulator;
-    let isPaused = false;
+    EJS_player = '#game';
 
-    // Initialize
-    function init() {
-      try {
-        emulator = new GameBoyAdvance();
-        emulator.setCanvas(canvas);
-        
-        // Optional: Set BIOS if you have one (many games need it)
-        // emulator.setBios(yourBiosArrayBuffer);
+    EJS_core = 'gba';
 
-        status.textContent = "✅ Emulator Ready - Select .gba ROM";
-      } catch (e) {
-        status.textContent = "❌ Failed to init emulator";
-        console.error(e);
-      }
-    }
+    EJS_pathtodata =
+      'https://cdn.emulatorjs.org/stable/data/';
 
-    romInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+    // AUTO LOAD ROM
+    EJS_gameUrl = './pokemon.gba';
 
-      status.textContent = "Loading ROM...";
+    // Optional BIOS
+    // EJS_biosUrl = './gba_bios.bin';
 
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          emulator.loadROM(ev.target.result);
-          emulator.run();
-          status.textContent = `🎮 ${file.name} running`;
-          isPaused = false;
-        } catch (err) {
-          status.textContent = "❌ Error loading ROM";
-          console.error(err);
-        }
-      };
-      reader.readAsArrayBuffer(file);
+    // Optional save support
+    EJS_startOnLoaded = true;
+
+    // Disable on-screen controls
+    EJS_disableDatabases = true;
+
+    // Hide unnecessary UI
+    EJS_hideSettings = true;
+
+    // =====================================
+    // Status Handling
+    // =====================================
+
+    window.addEventListener('load', () => {
+
+      const status =
+        document.getElementById('status');
+
+      status.textContent =
+        'Starting Pokémon...';
+
     });
-
-    pauseBtn.addEventListener('click', () => {
-      if (!emulator) return;
-      isPaused = !isPaused;
-      if (isPaused) {
-        emulator.pause();
-        pauseBtn.textContent = "RESUME";
-      } else {
-        emulator.run();
-        pauseBtn.textContent = "PAUSE";
-      }
-    });
-
-    resetBtn.addEventListener('click', () => {
-      if (emulator) {
-        emulator.reset();
-        status.textContent = "🔄 Reset";
-      }
-    });
-
-    window.onload = init;
   </script>
+
+  <!-- EmulatorJS Loader -->
+  <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
+
 </body>
 </html>
