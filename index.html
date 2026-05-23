@@ -2,60 +2,130 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>GBA on Ray-Ban</title>
+
   <style>
-    body { margin:0; padding:0; background:#000; overflow:hidden; font-family:sans-serif; }
-    #screen { width:100vw; height:100vh; image-rendering: pixelated; }
+    body {
+      margin:0;
+      padding:0;
+      background:#000;
+      overflow:hidden;
+      font-family:sans-serif;
+    }
+
+    #screen {
+      width:100vw;
+      height:100vh;
+      image-rendering: pixelated;
+    }
+
     #ui {
-      position: absolute; top: 10px; left: 10px; color: white; z-index: 10;
-      background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px;
+      position:absolute;
+      top:10px;
+      left:10px;
+      color:white;
+      z-index:10;
+      background:rgba(0,0,0,0.5);
+      padding:8px;
+      border-radius:8px;
+    }
+
+    button {
+      margin-top:6px;
+      padding:6px 10px;
+      border:none;
+      border-radius:6px;
+      background:#1e90ff;
+      color:white;
+      font-size:14px;
+    }
+
+    input[type=file] {
+      display:none;
     }
   </style>
 </head>
 <body>
 
   <canvas id="screen"></canvas>
-  <div id="ui">GBA on Ray-Ban • Swipe = D-Pad</div>
+
+  <div id="ui">
+    <div>GBA on Ray-Ban • Swipe = D-Pad</div>
+
+    <button id="loadBtn">Load ROM</button>
+    <input type="file" id="romInput" accept=".gba">
+  </div>
 
   <script src="https://cdn.jsdelivr.net/gh/thenick775/gbajs3@master/dist/gbajs3.min.js"></script>
 
   <script>
     const canvas = document.getElementById('screen');
+    const romInput = document.getElementById('romInput');
+    const loadBtn = document.getElementById('loadBtn');
+
     let emulator;
 
-    // Initialize emulator
     async function initEmulator() {
       emulator = new GBAjs3({
         canvas: canvas,
         volume: 0.8,
       });
 
-      // Load a BIOS if needed (you can host one legally)
-      // await emulator.loadBios('gba_bios.bin');
-
-      console.log("GBA Emulator ready for Ray-Ban!");
+      console.log("GBA Emulator ready!");
     }
 
     initEmulator();
 
-    // ============== GESTURE CONTROLS ==============
+    // ===============================
+    // ROM LOADING
+    // ===============================
+
+    loadBtn.addEventListener('click', () => {
+      romInput.click();
+    });
+
+    romInput.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+
+      if (!file) return;
+
+      const reader = new FileReader();
+
+      reader.onload = async function(e) {
+        const romBuffer = e.target.result;
+
+        try {
+          // Depending on gbaJS3 version:
+          await emulator.loadROM(romBuffer);
+
+          console.log("ROM loaded:", file.name);
+        } catch (err) {
+          console.error("Failed to load ROM:", err);
+        }
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+
+    // ===============================
+    // GESTURE CONTROLS
+    // ===============================
+
     let lastTap = 0;
     let touchStartX = 0;
     let touchStartY = 0;
     let holdTimer;
 
     canvas.addEventListener('touchstart', e => {
-      const now = Date.now();
       const touch = e.touches[0];
 
       touchStartX = touch.clientX;
       touchStartY = touch.clientY;
 
-      // Tap & Hold for START
       holdTimer = setTimeout(() => {
         emulator.keyDown('start');
-        console.log("START pressed (hold)");
       }, 500);
     });
 
@@ -64,54 +134,69 @@
       emulator.keyUp('start');
 
       const touch = e.changedTouches[0];
+
       const deltaX = touch.clientX - touchStartX;
       const deltaY = touch.clientY - touchStartY;
+
       const absX = Math.abs(deltaX);
       const absY = Math.abs(deltaY);
 
       const now = Date.now();
 
-      // Double tap detection for B
+      // Double tap = B
       if (now - lastTap < 300) {
         emulator.keyDown('b');
-        setTimeout(() => emulator.keyUp('b'), 50);
-        console.log("B (double tap)");
+
+        setTimeout(() => {
+          emulator.keyUp('b');
+        }, 50);
+
         lastTap = 0;
         return;
       }
+
       lastTap = now;
 
       // Single tap = A
       if (absX < 30 && absY < 30) {
         emulator.keyDown('a');
-        setTimeout(() => emulator.keyUp('a'), 60);
-        console.log("A (single tap)");
-      }
-      // Swipe detection for D-Pad
-      else if (absX > absY && absX > 40) {
-        if (deltaX > 0) emulator.keyDown('right'); else emulator.keyDown('left');
+
         setTimeout(() => {
-          emulator.keyUp('right'); emulator.keyUp('left');
+          emulator.keyUp('a');
+        }, 60);
+      }
+
+      // Horizontal swipe
+      else if (absX > absY && absX > 40) {
+
+        if (deltaX > 0) {
+          emulator.keyDown('right');
+        } else {
+          emulator.keyDown('left');
+        }
+
+        setTimeout(() => {
+          emulator.keyUp('right');
+          emulator.keyUp('left');
         }, 100);
       }
+
+      // Vertical swipe
       else if (absY > absX && absY > 40) {
-        if (deltaY > 0) emulator.keyDown('down'); else emulator.keyDown('up');
+
+        if (deltaY > 0) {
+          emulator.keyDown('down');
+        } else {
+          emulator.keyDown('up');
+        }
+
         setTimeout(() => {
-          emulator.keyUp('down'); emulator.keyUp('up');
+          emulator.keyUp('down');
+          emulator.keyUp('up');
         }, 100);
       }
     });
 
-    // Optional: Keyboard fallback for testing
-    document.addEventListener('keydown', e => {
-      if (e.key === 'ArrowRight') emulator.keyDown('right');
-      if (e.key === 'ArrowLeft') emulator.keyDown('left');
-      if (e.key === 'ArrowUp') emulator.keyDown('up');
-      if (e.key === 'ArrowDown') emulator.keyDown('down');
-      if (e.key === 'z') emulator.keyDown('a');
-      if (e.key === 'x') emulator.keyDown('b');
-      if (e.key === 'Enter') emulator.keyDown('start');
-    });
   </script>
 </body>
 </html>
