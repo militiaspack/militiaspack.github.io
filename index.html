@@ -1,29 +1,142 @@
-async function initEmulator() {
-  emulator = new GBAjs3({
-    canvas: canvas,
-    volume: 0,
-  });
-
-  try {
-    // OPTIONAL BIOS
-    // await emulator.loadBios('gba_bios.bin');
-
-    // Load ROM from same folder
-    const response = await fetch('./pokemon.gba');
-
-    const romBuffer = await response.arrayBuffer();
-
-    // Load into emulator
-    await emulator.loadROM(romBuffer);
-
-    // Some emulator builds require start()
-    if (emulator.start) {
-      emulator.start();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GBA on Ray-Ban</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      color: white;
+      font-family: system-ui;
+      overflow: hidden;
+      touch-action: none;
     }
+    #container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      align-items: center;
+    }
+    canvas {
+      image-rendering: pixelated;
+      max-width: 100%;
+      max-height: 80%;
+      border: 1px solid #333;
+    }
+    #controls {
+      position: fixed;
+      bottom: 10px;
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h2 style="margin: 8px 0;">GBA Emulator</h2>
+    <canvas id="screen" width="240" height="160"></canvas>
+    <input type="file" id="romInput" accept=".gba" style="margin-top: 10px;">
+  </div>
 
-    console.log("Pokemon loaded successfully!");
+  <div id="controls">
+    Swipe for D-pad • Tap=A • Double Tap=B • Hold=Start
+  </div>
 
-  } catch (err) {
-    console.error("Failed to load ROM:", err);
-  }
-}
+  <script src="https://cdn.jsdelivr.net/gh/andychase/gbajs2@master/js/gbajs2.js"></script>
+  <!-- If the above doesn't work, download gbajs2 and host it locally -->
+
+  <script>
+    const canvas = document.getElementById('screen');
+    const romInput = document.getElementById('romInput');
+
+    let emulator = new GameBoyAdvance();
+    emulator.setCanvas(canvas);
+
+    // Load ROM when selected
+    romInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          emulator.loadROM(ev.target.result);
+          emulator.run();
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    });
+
+    // === Custom Touch Controls ===
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let lastTap = 0;
+    let holdTimer = null;
+
+    canvas.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+
+      // Tap & Hold for Start
+      holdTimer = setTimeout(() => {
+        emulator.keyDown(9); // Start button (check gbajs2 mapping)
+      }, 400);
+    });
+
+    canvas.addEventListener('touchend', (e) => {
+      clearTimeout(holdTimer);
+
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - touchStartX;
+      const dy = touch.clientY - touchStartY;
+
+      // Detect swipe
+      if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+          // Horizontal swipe
+          if (dx > 0) emulator.keyDown(6); // Right
+          else emulator.keyDown(5); // Left
+        } else {
+          // Vertical swipe
+          if (dy > 0) emulator.keyDown(7); // Down
+          else emulator.keyDown(4); // Up
+        }
+        setTimeout(() => emulator.keyUpAll(), 100); // Release after swipe
+        return;
+      }
+
+      // Tap detection
+      const currentTime = new Date().getTime();
+      const tapLength = currentTime - lastTap;
+
+      if (tapLength < 300 && tapLength > 0) {
+        // Double tap = B
+        emulator.keyDown(1); // B button
+        setTimeout(() => emulator.keyUp(1), 50);
+      } else {
+        // Single tap = A
+        emulator.keyDown(0); // A button
+        setTimeout(() => emulator.keyUp(0), 50);
+      }
+      lastTap = currentTime;
+    });
+
+    // Optional: Keyboard fallback for testing on desktop
+    document.addEventListener('keydown', (e) => {
+      switch(e.key) {
+        case 'ArrowRight': emulator.keyDown(6); break;
+        case 'ArrowLeft': emulator.keyDown(5); break;
+        case 'ArrowDown': emulator.keyDown(7); break;
+        case 'ArrowUp': emulator.keyDown(4); break;
+        case 'z': emulator.keyDown(0); break; // A
+        case 'x': emulator.keyDown(1); break; // B
+        case 'Enter': emulator.keyDown(9); break; // Start
+      }
+    });
+  </script>
+</body>
+</html>
