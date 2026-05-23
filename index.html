@@ -48,7 +48,7 @@
       log("Library loaded successfully");
       status.textContent = "Library OK. Loading ROM...";
 
-      const romFileName = "yourgame.gba";   // ← Change to exact filename
+      const romFileName = "pokemon.gba";   // ← Change to exact filename
 
       fetch(romFileName, { cache: 'no-store' })
         .then(response => {
