@@ -61,7 +61,7 @@
   </style>
 </head>
 
-<body>
+<body tabindex="0">
 
   <div id="container">
 
@@ -71,12 +71,7 @@
       Loading Pokémon...
     </div>
 
-    <!-- focusable so Meta controls can target it -->
-    <div
-      id="game"
-      class="focusable"
-      tabindex="0">
-    </div>
+    <div id="game"></div>
 
   </div>
 
@@ -135,19 +130,6 @@
   <script>
 
     // =========================================
-    // META INPUT CONSTANTS
-    // =========================================
-
-    const DPAD = {
-      UP: 'ArrowUp',
-      DOWN: 'ArrowDown',
-      LEFT: 'ArrowLeft',
-      RIGHT: 'ArrowRight',
-      SELECT: 'Enter',
-      BACK: 'Escape',
-    };
-
-    // =========================================
     // WAIT FOR EMULATOR
     // =========================================
 
@@ -164,19 +146,23 @@
 
       setupControls();
 
-      // Focus game automatically
-      document.getElementById('game').focus();
+      // Force focus
+      window.focus();
+      document.body.focus();
+
     }
 
     waitForEmulator();
 
     // =========================================
-    // BUTTON PRESS HELPER
+    // BUTTON PRESS
     // =========================================
 
-    function tapKey(key, duration = 80) {
+    function tapKey(key, duration = 100) {
 
       try {
+
+        console.log("PRESS:", key);
 
         EJS_emulator
           .gameManager
@@ -205,43 +191,55 @@
 
     function handleGesture(type, direction = null) {
 
-      console.log("Gesture:", type, direction);
+      console.log(
+        "Gesture:",
+        type,
+        direction
+      );
 
       switch(type) {
 
-        // TAP = A
+        // =====================================
+        // A BUTTON
+        // =====================================
 
         case 'tap':
           tapKey('A');
           break;
 
-        // DOUBLE TAP = B
+        // =====================================
+        // B BUTTON
+        // =====================================
 
         case 'doubletap':
           tapKey('B');
           break;
 
-        // HOLD = START
+        // =====================================
+        // START BUTTON
+        // =====================================
 
         case 'hold':
           tapKey('START');
           break;
 
-        // SWIPES = DPAD
+        // =====================================
+        // DPAD
+        // =====================================
 
         case 'swipe':
-
-          if (direction === 'left')
-            tapKey('LEFT');
-
-          if (direction === 'right')
-            tapKey('RIGHT');
 
           if (direction === 'up')
             tapKey('UP');
 
           if (direction === 'down')
             tapKey('DOWN');
+
+          if (direction === 'left')
+            tapKey('LEFT');
+
+          if (direction === 'right')
+            tapKey('RIGHT');
 
           break;
       }
@@ -313,7 +311,9 @@
 
           const now = Date.now();
 
+          // =================================
           // DOUBLE TAP = B
+          // =================================
 
           if (now - lastTap < 300) {
 
@@ -325,7 +325,9 @@
 
           lastTap = now;
 
+          // =================================
           // TAP = A
+          // =================================
 
           if (absX < 20 && absY < 20) {
 
@@ -333,7 +335,9 @@
             return;
           }
 
+          // =================================
           // SWIPES
+          // =================================
 
           if (absX > absY) {
 
@@ -347,16 +351,17 @@
 
             }
 
-            return;
-          }
-
-          if (deltaY > 0) {
-
-            handleGesture('swipe', 'down');
-
           } else {
 
-            handleGesture('swipe', 'up');
+            if (deltaY > 0) {
+
+              handleGesture('swipe', 'down');
+
+            } else {
+
+              handleGesture('swipe', 'up');
+
+            }
 
           }
 
@@ -364,84 +369,134 @@
         { passive: true }
       );
 
-      console.log("Touch Controls Ready");
+      console.log("Touch controls ready");
+
     }
 
     // =========================================
     // META NEURAL BAND INPUT
     // =========================================
 
-    document.addEventListener('keydown', function(e) {
-
-      console.log("Meta Input:", e.key);
-
-      switch (e.key) {
-
-        // =================================
-        // SWIPES = DPAD
-        // =================================
-
-        case DPAD.UP:
-          handleGesture('swipe', 'up');
-          break;
-
-        case DPAD.DOWN:
-          handleGesture('swipe', 'down');
-          break;
-
-        case DPAD.LEFT:
-          handleGesture('swipe', 'left');
-          break;
-
-        case DPAD.RIGHT:
-          handleGesture('swipe', 'right');
-          break;
-
-        // =================================
-        // TAP = A
-        // =================================
-
-        case DPAD.SELECT:
-          handleGesture('tap');
-          break;
-
-        // =================================
-        // BACK = B
-        // =================================
-
-        case DPAD.BACK:
-          handleGesture('doubletap');
-          break;
-
-        default:
-          return;
-      }
-
-      e.preventDefault();
-
-    });
-
-    // =========================================
-    // EXTRA KEYBOARD SUPPORT
-    // =========================================
-
-    document.addEventListener(
+    window.addEventListener(
       'keydown',
       (e) => {
 
-        // Z = A
-        if (e.key === 'z')
-          tapKey('A');
+        console.log(
+          "KEY EVENT:",
+          e.key,
+          e.code
+        );
 
-        // X = B
-        if (e.key === 'x')
-          tapKey('B');
+        // =====================================
+        // SWIPE UP
+        // =====================================
 
-        // ENTER = START
-        if (e.key === 'Shift')
-          tapKey('START');
+        if (
+          e.key === 'ArrowUp'
+        ) {
 
-      }
+          handleGesture(
+            'swipe',
+            'up'
+          );
+
+          e.preventDefault();
+        }
+
+        // =====================================
+        // SWIPE DOWN
+        // =====================================
+
+        if (
+          e.key === 'ArrowDown'
+        ) {
+
+          handleGesture(
+            'swipe',
+            'down'
+          );
+
+          e.preventDefault();
+        }
+
+        // =====================================
+        // SWIPE LEFT
+        // =====================================
+
+        if (
+          e.key === 'ArrowLeft'
+        ) {
+
+          handleGesture(
+            'swipe',
+            'left'
+          );
+
+          e.preventDefault();
+        }
+
+        // =====================================
+        // SWIPE RIGHT
+        // =====================================
+
+        if (
+          e.key === 'ArrowRight'
+        ) {
+
+          handleGesture(
+            'swipe',
+            'right'
+          );
+
+          e.preventDefault();
+        }
+
+        // =====================================
+        // TAP = A
+        // =====================================
+
+        if (
+          e.key === 'Enter' ||
+          e.key === ' '
+        ) {
+
+          handleGesture('tap');
+
+          e.preventDefault();
+        }
+
+        // =====================================
+        // DOUBLE TAP = B
+        // =====================================
+
+        if (
+          e.key === 'Escape' ||
+          e.key === 'Backspace'
+        ) {
+
+          handleGesture(
+            'doubletap'
+          );
+
+          e.preventDefault();
+        }
+
+        // =====================================
+        // HOLD = START
+        // =====================================
+
+        if (
+          e.key === 'Shift' ||
+          e.key === 'Tab'
+        ) {
+
+          handleGesture('hold');
+
+          e.preventDefault();
+        }
+
+      },
+      true
     );
 
   </script>
