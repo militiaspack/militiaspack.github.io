@@ -7,21 +7,16 @@
   <style>
     body { margin:0; padding:0; background:#000; overflow:hidden; color:#0f0; font-family:monospace; }
     canvas { image-rendering: pixelated; width:100%; height:100vh; display:block; }
-    #status { position:absolute; top:20px; left:20px; z-index:100; background:rgba(0,0,0,0.85); padding:15px; border-radius:8px; white-space:pre-wrap; max-width:85%; }
+    #status { position:absolute; top:20px; left:20px; z-index:100; background:rgba(0,0,0,0.9); padding:15px; border-radius:8px; white-space:pre-wrap; max-width:90%; }
   </style>
 </head>
 <body>
-  <div id="status">Loading emulator core...</div>
+  <div id="status">Loading emulator core... (this may take a few seconds)</div>
   <canvas id="screen" width="240" height="160"></canvas>
 
-  <!-- Load gbajs core files in correct order -->
-  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs/js/GameBoyAdvance.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs/js/GameBoyAdvanceIO.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs/js/GameBoyAdvanceMemory.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs/js/GameBoyAdvanceCPU.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs/js/GameBoyAdvanceGraphics.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs/js/GameBoyAdvanceSound.js"></script>
-
+  <!-- Using a more reliable pure JS emulator -->
+  <script src="https://cdn.jsdelivr.net/gh/lrusso/GameBoyAdvance@master/js/gba.js"></script>
+  
   <script>
     const canvas = document.getElementById('screen');
     const statusEl = document.getElementById('status');
@@ -34,49 +29,53 @@
 
     async function startEmulator() {
       try {
-        updateStatus("Creating GameBoyAdvance emulator...");
-        
+        updateStatus("Creating emulator instance...");
+
         gba = new GameBoyAdvance();
         gba.setCanvas(canvas);
 
-        updateStatus("Fetching pokemon.gba...");
+        updateStatus("Fetching pokemon.gba from same folder...");
         const response = await fetch('pokemon.gba', { cache: 'no-cache' });
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status} - Check file name and upload`);
+          throw new Error(`File not found (HTTP ${response.status})`);
         }
 
         const romBuffer = await response.arrayBuffer();
 
-        updateStatus("Loading ROM...");
+        updateStatus("Loading ROM into emulator...");
         gba.loadROM(romBuffer);
 
         updateStatus("Starting Pokémon...", "#ff0");
         gba.run();
 
-        setTimeout(() => statusEl.style.display = 'none', 2500);
+        setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
 
       } catch (err) {
         console.error(err);
-        updateStatus("ERROR: " + err.message + "\n\nMake sure:\n• pokemon.gba is in same folder\n• Exact lowercase name\n• Hosted properly (Vercel/Netlify best)", "#f66");
+        updateStatus("ERROR: " + err.message + "\n\nTips:\n• File must be exactly 'pokemon.gba' (lowercase)\n• Same folder as index.html\n• Use Vercel or Netlify", "#f66");
       }
     }
 
     function setupControls() {
       const keyMap = {
         ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-        'z': 'a', ' ': 'a',          // Tap → A
-        'x': 'b',                    // Double tap → B
-        's': 'start',                // Hold → Start
+        'z': 'a', ' ': 'a',           // Tap = A button
+        'x': 'b',                     // Double tap simulation = B
+        's': 'start',                 // Tap & hold simulation = Start
         'Shift': 'select'
       };
 
       document.addEventListener('keydown', e => {
-        if (gba && keyMap[e.key]) gba.keyPress(keyMap[e.key]);
+        if (gba && keyMap[e.key]) {
+          gba.keyPress(keyMap[e.key]);
+        }
       });
 
       document.addEventListener('keyup', e => {
-        if (gba && keyMap[e.key]) gba.keyRelease(keyMap[e.key]);
+        if (gba && keyMap[e.key]) {
+          gba.keyRelease(keyMap[e.key]);
+        }
       });
     }
 
