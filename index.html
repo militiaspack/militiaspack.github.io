@@ -1,16 +1,13 @@
-<!-- Working GBA Emulator -->
-<script src="https://cdn.jsdelivr.net/gh/endrift/gba.js/build/gba.js"></script>
+<!-- EmulatorJS (NO BIOS REQUIRED) -->
+<script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-  // ===============================
-  // SAFE ELEMENT GET
-  // ===============================
-
   let overlay = document.getElementById("overlay");
-  const canvas = document.getElementById("screen");
+  const canvasWrap = document.getElementById("wrap");
 
+  // fallback overlay
   if (!overlay) {
     overlay = document.createElement("div");
     overlay.id = "overlay";
@@ -22,88 +19,47 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.appendChild(overlay);
   }
 
-  // ===============================
-  // VERIFY LIBRARY
-  // ===============================
-
-  if (!window.GameBoyAdvance) {
-    overlay.textContent = "ERROR: GBA LIB NOT LOADED";
-    console.error("GameBoyAdvance is undefined");
-    return;
-  }
+  overlay.textContent = "Loading Emulator...";
 
   // ===============================
-  // INIT EMULATOR
+  // EMULATOR CONFIG
   // ===============================
 
-  const gba = new GameBoyAdvance();
-  gba.setCanvas(canvas);
+  window.EJS_player = "#wrap";
+  window.EJS_core = "gba";
+  window.EJS_gameUrl = "./pokemon.gba";
+  window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
 
-  gba.logLevel = gba.LOG_ERROR;
-  gba.setLogger((level, msg) => console.log(msg));
-
-  overlay.textContent = "Loading BIOS...";
-
-  fetch("./gba_bios.bin")
-    .then(res => res.arrayBuffer())
-    .then(bios => {
-
-      gba.setBios(bios);
-
-      overlay.textContent = "Loading ROM...";
-
-      return fetch("./pokemon.gba");
-
-    })
-    .then(res => res.arrayBuffer())
-    .then(buffer => {
-
-      gba.setRom(buffer);
-      gba.reset();
-      gba.runStable();
-
-      overlay.textContent = "READY";
-
-    })
-    .catch(err => {
-      overlay.textContent = "LOAD FAILED";
-      console.error(err);
-    });
+  // optional UI tweaks
+  window.EJS_startOnLoaded = true;
+  window.EJS_hideControls = true;
 
   // ===============================
-  // INPUT STATE
+  // INPUT BRIDGE
   // ===============================
 
-  const input = {
-    A: 0,
-    B: 0,
-    UP: 0,
-    DOWN: 0,
-    LEFT: 0,
-    RIGHT: 0,
-    START: 0
-  };
+  function press(key) {
+    if (!window.EJS_emulator) return;
 
-  function update() {
-    if (gba.keypad) gba.keypad.set(input);
-  }
+    const map = {
+      A: "a",
+      B: "b",
+      START: "start",
+      UP: "up",
+      DOWN: "down",
+      LEFT: "left",
+      RIGHT: "right"
+    };
 
-  // ===============================
-  // PRESS HELPERS
-  // ===============================
-
-  function press(key, time = 120) {
-    input[key] = 1;
-    update();
+    window.EJS_emulator.buttonDown(map[key]);
 
     setTimeout(() => {
-      input[key] = 0;
-      update();
-    }, time);
+      window.EJS_emulator.buttonUp(map[key]);
+    }, 120);
   }
 
   // ===============================
-  // META INPUT
+  // META INPUT LAYER
   // ===============================
 
   function handleGesture(e) {
@@ -150,6 +106,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === " ") handleGesture({type:"doubleTap"});
     if (e.key === "Shift") handleGesture({type:"hold"});
   });
+
+  // ===============================
+  // READY STATE CHECK
+  // ===============================
+
+  const checkReady = setInterval(() => {
+    if (window.EJS_emulator) {
+      overlay.textContent = "READY";
+      clearInterval(checkReady);
+    }
+  }, 500);
 
 });
 </script>
