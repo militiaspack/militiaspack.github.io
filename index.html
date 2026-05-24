@@ -2,61 +2,81 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=600, initial-scale=1.0">
-  <title>Ray-Ban GBA Emulator</title>
+  <meta name="viewport" content="width=600, initial-scale=1.0, user-scalable=no">
+  <title>Pokémon GBA - Ray-Ban</title>
   <style>
-    body { margin:0; background:black; color:white; font-family:sans-serif; overflow:hidden; }
-    #screen { image-rendering: pixelated; width: 100%; height: auto; max-height: 100vh; }
-    #controls { position: absolute; bottom: 10px; left: 10px; opacity: 0.7; }
+    body { margin:0; padding:0; background:#000; overflow:hidden; touch-action:none; }
+    canvas { image-rendering: pixelated; width: 100%; height: 100vh; display: block; }
+    #status { position: absolute; top: 10px; left: 10px; color: #0f0; font-family: monospace; z-index: 10; }
   </style>
 </head>
 <body>
+  <div id="status">Loading Pokémon...</div>
   <canvas id="screen" width="240" height="160"></canvas>
-  
-  <div id="controls">
-    <input type="file" id="romInput" accept=".gba">
-    <button onclick="loadDefault()">Load Pokémon (if embedded)</button>
-  </div>
 
-  <script src="https://cdn.jsdelivr.net/gh/andychase/gbajs2@master/js/gba.js"></script> <!-- Use a hosted version or self-host gbajs2 -->
+  <script src="https://cdn.jsdelivr.net/gh/thenick775/gbajs3@master/dist/gbajs3.min.js"></script>
   <script>
     const canvas = document.getElementById('screen');
-    const gba = new GameBoyAdvance();
+    const status = document.getElementById('status');
+
+    // Initialize emulator
+    const gba = new GBA();
     gba.setCanvas(canvas);
 
-    // Load ROM from file picker
-    document.getElementById('romInput').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          gba.loadROMArrayBuffer(ev.target.result);
-          gba.run();
-        };
-        reader.readAsArrayBuffer(file);
+    // Auto-load pokemon.gba from same folder
+    async function loadROM() {
+      try {
+        status.textContent = "Fetching pokemon.gba...";
+        const response = await fetch('pokemon.gba');
+        
+        if (!response.ok) throw new Error('ROM not found');
+        
+        const arrayBuffer = await response.arrayBuffer();
+        
+        status.textContent = "Loading ROM...";
+        gba.loadROM(arrayBuffer);
+        
+        status.textContent = "Starting Pokémon...";
+        gba.run();
+        
+        setTimeout(() => status.style.display = 'none', 2000);
+      } catch (err) {
+        status.textContent = "Error: pokemon.gba not found in same folder";
+        console.error(err);
       }
-    });
+    }
 
-    // Basic Neural Band / keyboard mapping (glasses translate gestures to arrows)
-    document.addEventListener('keydown', (e) => {
-      switch(e.key) {
-        case 'ArrowUp':    gba.keyPress(0); break; // Up
-        case 'ArrowDown':  gba.keyPress(1); break;
-        case 'ArrowLeft':  gba.keyPress(2); break;
-        case 'ArrowRight': gba.keyPress(3); break;
-        case 'z': case ' ': gba.keyPress(4); break; // A (tap)
-        case 'x': gba.keyPress(5); break;           // B (double tap simulation)
-        case 'Enter': gba.keyPress(6); break;       // Start (hold simulation)
-        case 'Shift': gba.keyPress(7); break;       // Select
-      }
-    });
+    // Keyboard / Neural Band mapping (Meta glasses translate gestures)
+    function setupControls() {
+      const keyMap = {
+        'ArrowUp': 0,    // D-pad
+        'ArrowDown': 1,
+        'ArrowLeft': 2,
+        'ArrowRight': 3,
+        'z': 4,          // A (tap)
+        'x': 5,          // B (double tap)
+        'Enter': 6,      // Start (tap & hold)
+        'Shift': 7       // Select
+      };
 
-    document.addEventListener('keyup', (e) => {
-      // Release keys...
-    });
+      document.addEventListener('keydown', e => {
+        if (keyMap[e.key] !== undefined) {
+          gba.keyPress(keyMap[e.key]);
+        }
+      });
 
-    // For better Neural Band support, the glasses already map gestures to arrow keys.
-    // You can enhance with motion/orientation if needed via the Meta API.
+      document.addEventListener('keyup', e => {
+        if (keyMap[e.key] !== undefined) {
+          gba.keyRelease(keyMap[e.key]);
+        }
+      });
+    }
+
+    // Start everything
+    window.onload = () => {
+      setupControls();
+      loadROM();
+    };
   </script>
 </body>
 </html>
