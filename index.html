@@ -1,15 +1,29 @@
-<!-- Working GBA Emulator -->
 <script src="https://unpkg.com/gba.js/dist/gba.min.js"></script>
 
 <script>
-
-window.onload = () => {
-
-  const overlay = document.getElementById("overlay");
-  const canvas = document.getElementById("screen");
+document.addEventListener("DOMContentLoaded", () => {
 
   // ===============================
-  // VERIFY LIBRARY LOADED
+  // SAFE ELEMENT GET
+  // ===============================
+
+  let overlay = document.getElementById("overlay");
+  const canvas = document.getElementById("screen");
+
+  // Fallback if overlay is missing
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "overlay";
+    overlay.style.position = "absolute";
+    overlay.style.top = "10px";
+    overlay.style.left = "10px";
+    overlay.style.color = "#00ff66";
+    overlay.style.fontFamily = "monospace";
+    document.body.appendChild(overlay);
+  }
+
+  // ===============================
+  // VERIFY LIBRARY
   // ===============================
 
   if (!window.GameBoyAdvance) {
@@ -27,7 +41,6 @@ window.onload = () => {
 
   overlay.textContent = "Loading BIOS...";
 
-  // Load BIOS
   fetch("./gba_bios.bin")
     .then(res => res.arrayBuffer())
     .then(bios => {
@@ -42,7 +55,6 @@ window.onload = () => {
     .then(res => res.arrayBuffer())
     .then(buffer => {
 
-      // Some builds use loadROM instead
       if (gba.loadROM) {
         gba.loadROM(buffer);
       } else {
@@ -50,7 +62,6 @@ window.onload = () => {
       }
 
       overlay.textContent = "READY";
-
       gba.runStable();
 
     })
@@ -74,7 +85,7 @@ window.onload = () => {
   };
 
   function update() {
-    gba.keypad.set(input);
+    if (gba.keypad) gba.keypad.set(input);
   }
 
   // ===============================
@@ -92,15 +103,13 @@ window.onload = () => {
   }
 
   // ===============================
-  // META INPUT LAYER
+  // META INPUT
   // ===============================
 
   function handleGesture(e) {
-
     const { type, direction } = e;
 
     switch (type) {
-
       case "tap":
         press("A");
         break;
@@ -114,27 +123,21 @@ window.onload = () => {
         break;
 
       case "swipe":
-
         if (direction === "left") press("LEFT");
         if (direction === "right") press("RIGHT");
         if (direction === "up") press("UP");
         if (direction === "down") press("DOWN");
-
         break;
     }
   }
 
   // ===============================
-  // META EVENT HOOK
+  // EVENT HOOKS
   // ===============================
 
   window.addEventListener("metaGesture", (e) => {
     handleGesture(e.detail);
   });
-
-  // ===============================
-  // KEYBOARD FALLBACK
-  // ===============================
 
   window.addEventListener("keydown", (e) => {
 
@@ -148,6 +151,5 @@ window.onload = () => {
     if (e.key === "Shift") handleGesture({type:"hold"});
   });
 
-};
-
+});
 </script>
