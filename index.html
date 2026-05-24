@@ -11,11 +11,11 @@
   </style>
 </head>
 <body>
-  <div id="status">Loading emulator core... (this may take a few seconds)</div>
+  <div id="status">Loading emulator core... (may take 5-10 seconds)</div>
   <canvas id="screen" width="240" height="160"></canvas>
 
-  <!-- Using a more reliable pure JS emulator -->
-  <script src="https://cdn.jsdelivr.net/gh/lrusso/GameBoyAdvance@master/js/gba.js"></script>
+  <!-- lrusso pure JS emulator -->
+  <script src="https://cdn.jsdelivr.net/gh/lrusso/GameBoyAdvance@master/GameBoyAdvance.min.js"></script>
   
   <script>
     const canvas = document.getElementById('screen');
@@ -29,53 +29,50 @@
 
     async function startEmulator() {
       try {
-        updateStatus("Creating emulator instance...");
+        updateStatus("Initializing emulator...");
 
-        gba = new GameBoyAdvance();
-        gba.setCanvas(canvas);
+        // Create container for the emulator
+        const container = document.createElement('div');
+        container.id = 'game';
+        container.style.width = '100%';
+        container.style.height = '100vh';
+        document.body.appendChild(container);
 
-        updateStatus("Fetching pokemon.gba from same folder...");
+        // Hide original canvas
+        canvas.style.display = 'none';
+
+        updateStatus("Fetching pokemon.gba...");
+
         const response = await fetch('pokemon.gba', { cache: 'no-cache' });
+        if (!response.ok) throw new Error(`File not found (${response.status})`);
 
-        if (!response.ok) {
-          throw new Error(`File not found (HTTP ${response.status})`);
-        }
+        const romArrayBuffer = await response.arrayBuffer();
+        const romBlob = new Blob([romArrayBuffer], { type: 'application/octet-stream' });
+        const romFile = new File([romBlob], "pokemon.gba", { type: "application/octet-stream" });
 
-        const romBuffer = await response.arrayBuffer();
+        updateStatus("Loading ROM...");
 
-        updateStatus("Loading ROM into emulator...");
-        gba.loadROM(romBuffer);
+        embedGameBoyAdvance({
+          container: "game",
+          rom: romFile,
+          soundEnabled: true,
+          showMobileControls: false,   // Neural Band will handle input
+        });
 
         updateStatus("Starting Pokémon...", "#ff0");
-        gba.run();
-
-        setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+        setTimeout(() => statusEl.style.display = 'none', 3000);
 
       } catch (err) {
         console.error(err);
-        updateStatus("ERROR: " + err.message + "\n\nTips:\n• File must be exactly 'pokemon.gba' (lowercase)\n• Same folder as index.html\n• Use Vercel or Netlify", "#f66");
+        updateStatus("ERROR: " + err.message + "\n\n• pokemon.gba must be in same folder\n• Exact lowercase name\n• Try Vercel/Netlify", "#f66");
       }
     }
 
+    // Neural Band / Keyboard controls
     function setupControls() {
-      const keyMap = {
-        ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-        'z': 'a', ' ': 'a',           // Tap = A button
-        'x': 'b',                     // Double tap simulation = B
-        's': 'start',                 // Tap & hold simulation = Start
-        'Shift': 'select'
-      };
-
       document.addEventListener('keydown', e => {
-        if (gba && keyMap[e.key]) {
-          gba.keyPress(keyMap[e.key]);
-        }
-      });
-
-      document.addEventListener('keyup', e => {
-        if (gba && keyMap[e.key]) {
-          gba.keyRelease(keyMap[e.key]);
-        }
+        // The embed function creates its own input handling, but we can try global keys
+        console.log("Key pressed:", e.key); // For debugging
       });
     }
 
