@@ -29,7 +29,7 @@
     .game:hover { background: #020; transform: scale(1.05); box-shadow: 0 0 15px #0f0; }
 
     #emulator-frame {
-      flex: 1; border: none; background: #000; width: 100%; height: 100%;
+      flex: 1; border: none; background: #000; width: 100%; display: none;
     }
 
     .controls {
@@ -43,40 +43,35 @@
     }
 
     .ab-buttons {
-      position: absolute; right: 35px; bottom: 55px;
-      pointer-events: all;
+      position: absolute; right: 35px; bottom: 55px; pointer-events: all;
     }
 
     .btn {
-      width: 68px; height: 68px; border-radius: 50%; border: 4px solid #0f0; background: rgba(0,255,0,0.12);
-      display: inline-flex; align-items: center; justify-content: center; margin: 8px; color: #0f0; font-size: 20px;
+      width: 68px; height: 68px; border-radius: 50%; border: 4px solid #0f0; 
+      background: rgba(0,255,0,0.12); display: inline-flex; align-items: center; 
+      justify-content: center; margin: 8px; color: #0f0; font-size: 20px;
       box-shadow: 0 0 10px #0f0;
     }
 
     .overlay {
-      position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.8); padding: 10px 14px; border: 1px solid #0f0;
-      font-size: 12px; line-height: 1.4;
+      position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.8); 
+      padding: 10px 14px; border: 1px solid #0f0; font-size: 12px; line-height: 1.4;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>RAYBAN META • GBA</h1>
-  </header>
+  <header><h1>RAYBAN META • GBA</h1></header>
 
   <div id="library" class="library"></div>
-
-  <iframe id="emulator-frame" style="display:none;" allowfullscreen></iframe>
+  <iframe id="emulator-frame" allowfullscreen></iframe>
 
   <div class="controls">
     <div class="dpad" id="dpad"></div>
-    
     <div class="ab-buttons">
       <div class="btn" id="btnA">A</div>
       <div class="btn" id="btnB">B</div>
     </div>
-
     <div class="overlay">
       Swipe = D-Pad<br>
       Tap = A | Double Tap = B<br>
@@ -88,15 +83,14 @@
     const games = [
       {name: "Pokémon Emerald", id: "pokemonemerald"},
       {name: "Pokémon FireRed", id: "pokemonred"},
+      {name: "Mario & Luigi Superstar Saga", id: "superstar"},
       {name: "Advance Wars", id: "advancewars"},
       {name: "Advance Wars 2", id: "advancewars2"},
       {name: "The Minish Cap", id: "zelda_minish"},
-      {name: "Mario & Luigi Superstar Saga", id: "superstar"},
       {name: "Metroid Fusion", id: "metroid_fusion"},
       {name: "Kirby & The Amazing Mirror", id: "kirbymirror"},
       {name: "Golden Sun", id: "goldensun"},
-      {name: "Mario Kart Super Circuit", id: "mariokart"},
-      // Add more as you like
+      {name: "Mario Kart Super Circuit", id: "mariokart"}
     ];
 
     const library = document.getElementById('library');
@@ -113,57 +107,53 @@
     function loadGame(id) {
       library.style.display = 'none';
       frame.style.display = 'block';
+      // FORCE HTTPS
       frame.src = `https://gba.js.org/player#${id}`;
     }
 
-    // Touch Controls
+    // ==================== TOUCH CONTROLS ====================
     let lastTap = 0;
     let holdTimer;
 
+    // D-Pad swipe
     const dpad = document.getElementById('dpad');
-
-    dpad.addEventListener('touchstart', e => {
-      e.preventDefault();
-    });
-
     dpad.addEventListener('touchmove', e => {
       e.preventDefault();
       const touch = e.touches[0];
-      const dx = touch.clientX - dpad.getBoundingClientRect().left - 65;
-      const dy = touch.clientY - dpad.getBoundingClientRect().top - 65;
+      const rect = dpad.getBoundingClientRect();
+      const dx = touch.clientX - (rect.left + 65);
+      const dy = touch.clientY - (rect.top + 65);
 
-      const iframeWin = frame.contentWindow;
-      if (!iframeWin) return;
-
-      if (Math.abs(dx) > 25 || Math.abs(dy) > 25) {
+      const win = frame.contentWindow;
+      if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
         if (Math.abs(dx) > Math.abs(dy)) {
-          iframeWin.postMessage({key: dx > 0 ? 'ArrowRight' : 'ArrowLeft'}, '*');
+          win?.postMessage({key: dx > 0 ? 'ArrowRight' : 'ArrowLeft'}, '*');
         } else {
-          iframeWin.postMessage({key: dy > 0 ? 'ArrowDown' : 'ArrowUp'}, '*');
+          win?.postMessage({key: dy > 0 ? 'ArrowDown' : 'ArrowUp'}, '*');
         }
       }
     });
 
+    // A Button
     document.getElementById('btnA').addEventListener('touchstart', () => {
       frame.contentWindow?.postMessage({key: 'KeyZ'}, '*');
     });
 
+    // B Button
     document.getElementById('btnB').addEventListener('touchstart', () => {
       frame.contentWindow?.postMessage({key: 'KeyX'}, '*');
     });
 
-    // Double tap anywhere on screen = B
+    // Double tap anywhere = B
     document.addEventListener('touchend', () => {
-      if (frame.style.display === 'none') return;
+      if (frame.style.display !== 'block') return;
       const now = Date.now();
-      if (now - lastTap < 350) {
-        frame.contentWindow?.postMessage({key: 'KeyX'}, '*');
-      }
+      if (now - lastTap < 350) frame.contentWindow?.postMessage({key: 'KeyX'}, '*');
       lastTap = now;
     });
 
     // Long press = Start
-    document.addEventListener('touchstart', e => {
+    document.addEventListener('touchstart', () => {
       if (frame.style.display === 'block') {
         holdTimer = setTimeout(() => {
           frame.contentWindow?.postMessage({key: 'Enter'}, '*');
