@@ -105,11 +105,11 @@
     });
 
     function loadGame(id) {
-      library.style.display = 'none';
-      frame.style.display = 'block';
-      // FORCE HTTPS
-      frame.src = `https://gba.js.org/player#${id}`;
-    }
+  library.style.display = 'none';
+  frame.style.display = 'block';
+  // Alternative reliable HTTPS emulator
+  frame.src = `https://gba.js.org/player/?rom=${id}`;
+}
 
     // ==================== TOUCH CONTROLS ====================
     let lastTap = 0;
