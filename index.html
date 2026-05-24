@@ -25,14 +25,20 @@ document.addEventListener("DOMContentLoaded", () => {
   // EMULATOR CONFIG
   // ===============================
 
-  window.EJS_player = "#wrap";
-  window.EJS_core = "gba";
-  window.EJS_gameUrl = "./pokemon.gba";
-  window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+ 
+window.EJS_player = "#wrap";
+window.EJS_core = "gba";
+window.EJS_gameUrl = "./pokemon.gba";
 
-  // optional UI tweaks
-  window.EJS_startOnLoaded = true;
-  window.EJS_hideControls = true;
+window.EJS_pathtodata = "https://cdn.emulatorjs.org/latest/data/";
+
+window.EJS_paths = {
+  core: "https://cdn.emulatorjs.org/latest/data/cores/",
+  data: "https://cdn.emulatorjs.org/latest/data/"
+};
+
+window.EJS_startOnLoaded = true;
+window.EJS_hideControls = true;
 
   // ===============================
   // INPUT BRIDGE
