@@ -14,12 +14,18 @@
   <div id="status">Loading emulator core...</div>
   <canvas id="screen" width="240" height="160"></canvas>
 
-  <!-- Using a more complete hosted version -->
-  <script src="https://cdn.jsdelivr.net/gh/taisel/IodineGBA@master/js/IodineGBA.js"></script>
+  <!-- Load gbajs core files in correct order -->
+  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs/js/GameBoyAdvance.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs/js/GameBoyAdvanceIO.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs/js/GameBoyAdvanceMemory.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs/js/GameBoyAdvanceCPU.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs/js/GameBoyAdvanceGraphics.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/endrift/gbajs/js/GameBoyAdvanceSound.js"></script>
+
   <script>
     const canvas = document.getElementById('screen');
     const statusEl = document.getElementById('status');
-    let emulator = null;
+    let gba = null;
 
     function updateStatus(msg, color = '#0f0') {
       statusEl.textContent = msg;
@@ -28,59 +34,49 @@
 
     async function startEmulator() {
       try {
-        updateStatus("Initializing IodineGBA...");
-
-        // Create emulator instance
-        emulator = new IodineGBA();
-
-        // Set up canvas
-        emulator.attachCanvas(canvas);
+        updateStatus("Creating GameBoyAdvance emulator...");
+        
+        gba = new GameBoyAdvance();
+        gba.setCanvas(canvas);
 
         updateStatus("Fetching pokemon.gba...");
         const response = await fetch('pokemon.gba', { cache: 'no-cache' });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
+          throw new Error(`HTTP ${response.status} - Check file name and upload`);
         }
 
         const romBuffer = await response.arrayBuffer();
 
         updateStatus("Loading ROM...");
-        emulator.loadROM(romBuffer);
+        gba.loadROM(romBuffer);
 
-        updateStatus("Starting game...", "#ff0");
-        emulator.run();
+        updateStatus("Starting Pokémon...", "#ff0");
+        gba.run();
 
-        setTimeout(() => { statusEl.style.display = 'none'; }, 2500);
+        setTimeout(() => statusEl.style.display = 'none', 2500);
 
       } catch (err) {
         console.error(err);
-        updateStatus("ERROR: " + err.message + "\n\n" +
-          "• Make sure pokemon.gba is in the same folder\n" +
-          "• Exact filename (lowercase)\n" +
-          "• Try Vercel/Netlify host", "#f66");
+        updateStatus("ERROR: " + err.message + "\n\nMake sure:\n• pokemon.gba is in same folder\n• Exact lowercase name\n• Hosted properly (Vercel/Netlify best)", "#f66");
       }
     }
 
     function setupControls() {
       const keyMap = {
         ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-        'z': 'a', ' ': 'a',          // Tap = A
-        'x': 'b',                    // Double tap simulation = B
-        's': 'start',                // Hold simulation = Start
+        'z': 'a', ' ': 'a',          // Tap → A
+        'x': 'b',                    // Double tap → B
+        's': 'start',                // Hold → Start
         'Shift': 'select'
       };
 
       document.addEventListener('keydown', e => {
-        if (emulator && keyMap[e.key]) {
-          emulator.keyPress(keyMap[e.key]);
-        }
+        if (gba && keyMap[e.key]) gba.keyPress(keyMap[e.key]);
       });
 
       document.addEventListener('keyup', e => {
-        if (emulator && keyMap[e.key]) {
-          emulator.keyRelease(keyMap[e.key]);
-        }
+        if (gba && keyMap[e.key]) gba.keyRelease(keyMap[e.key]);
       });
     }
 
