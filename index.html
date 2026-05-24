@@ -2,17 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-
-  <meta name="viewport"
-        content="width=device-width,
-                 initial-scale=1.0,
-                 maximum-scale=1.0,
-                 user-scalable=no">
-
+  <meta name="viewport" content="width=600, height=600, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Pokemon on Meta Glasses</title>
 
   <style>
-
     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
     body {
@@ -20,16 +13,13 @@
       padding: 0;
       background: #000;
       overflow: hidden;
-
+      width: 600px;
+      height: 600px;
+      font-family: 'Press Start 2P', monospace;
+      color: #00ff66;
       display: flex;
       align-items: center;
       justify-content: center;
-
-      width: 100vw;
-      height: 100vh;
-
-      font-family: 'Press Start 2P', monospace;
-      color: #00ff66;
     }
 
     #container {
@@ -39,7 +29,7 @@
 
     h1 {
       font-size: 16px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
       text-shadow: 0 0 10px #00ff66;
     }
 
@@ -50,456 +40,102 @@
     }
 
     #game {
-      width: 100vw;
-      height: 100vh;
+      width: 480px;
+      height: 320px;
       image-rendering: pixelated;
       background: black;
-      touch-action: none;
-      outline: none;
+      border: 4px solid #222;
     }
-
   </style>
 </head>
-
 <body tabindex="0">
 
   <div id="container">
-
-    <h1>POKEMON GBA</h1>
-
-    <div id="status">
-      Loading Pokémon...
-    </div>
-
+    <h1>POKÉMON GBA</h1>
+    <div id="status">Loading Pokémon...</div>
     <div id="game"></div>
-
   </div>
-
-  <script>
-
-    // =========================================
-    // EMULATORJS CONFIG
-    // =========================================
-
-    EJS_player = "#game";
-
-    EJS_core = "gba";
-
-    EJS_pathtodata =
-      "https://cdn.emulatorjs.org/latest/data/";
-
-    EJS_gameUrl = "./pokemon.gba";
-
-    EJS_startOnLoaded = true;
-
-    EJS_disableDatabases = true;
-    EJS_hideSettings = true;
-
-    EJS_Buttons = {
-      playPause: false,
-      restart: false,
-      mute: false,
-      settings: false,
-      fullscreen: false,
-      saveState: false,
-      loadState: false,
-      screenRecord: false,
-      gamepad: false,
-      cheats: false
-    };
-
-    // =========================================
-    // STATUS
-    // =========================================
-
-    window.addEventListener('load', () => {
-
-      const status =
-        document.getElementById('status');
-
-      status.textContent =
-        'Starting Pokémon...';
-
-    });
-
-  </script>
 
   <!-- EmulatorJS -->
   <script src="https://cdn.emulatorjs.org/latest/data/loader.js"></script>
 
   <script>
+    // ==================== EMULATOR CONFIG ====================
+    EJS_player = "#game";
+    EJS_core = "gba";
+    EJS_pathtodata = "https://cdn.emulatorjs.org/latest/data/";
+    EJS_gameUrl = "./pokemon.gba";
+    EJS_startOnLoaded = true;
 
-    // =========================================
-    // WAIT FOR EMULATOR
-    // =========================================
+    EJS_disableDatabases = true;
+    EJS_hideSettings = true;
+    EJS_Buttons = {
+      playPause: false, restart: false, mute: false,
+      settings: false, fullscreen: false, saveState: false,
+      loadState: false, screenRecord: false, gamepad: false
+    };
 
-    function waitForEmulator() {
+    let emulatorReady = false;
 
-      if (!window.EJS_emulator ||
-          !EJS_emulator.gameManager) {
-
-        setTimeout(waitForEmulator, 500);
-        return;
-      }
-
-      console.log("Emulator Ready");
-
-      setupControls();
-
-      // Force focus
-      window.focus();
-      document.body.focus();
-
-    }
-
-    waitForEmulator();
-
-    // =========================================
-    // BUTTON PRESS
-    // =========================================
-
-    function tapKey(key, duration = 100) {
-
+    function tapKey(key, duration = 80) {
+      if (!emulatorReady || !window.EJS_emulator) return;
       try {
-
-        console.log("PRESS:", key);
-
-        EJS_emulator
-          .gameManager
-          .controls
-          .pressKey(key);
-
+        EJS_emulator.gameManager.controls.pressKey(key);
         setTimeout(() => {
-
-          EJS_emulator
-            .gameManager
-            .controls
-            .releaseKey(key);
-
+          EJS_emulator.gameManager.controls.releaseKey(key);
         }, duration);
-
-      } catch (err) {
-
-        console.error(err);
-
+      } catch (e) {
+        console.error(e);
       }
     }
 
-    // =========================================
-    // GESTURE HANDLER
-    // =========================================
-
-    function handleGesture(type, direction = null) {
-
-      console.log(
-        "Gesture:",
-        type,
-        direction
-      );
-
-      switch(type) {
-
-        // =====================================
-        // A BUTTON
-        // =====================================
-
-        case 'tap':
-          tapKey('A');
-          break;
-
-        // =====================================
-        // B BUTTON
-        // =====================================
-
-        case 'doubletap':
-          tapKey('B');
-          break;
-
-        // =====================================
-        // START BUTTON
-        // =====================================
-
-        case 'hold':
-          tapKey('START');
-          break;
-
-        // =====================================
-        // DPAD
-        // =====================================
-
-        case 'swipe':
-
-          if (direction === 'up')
+    // ==================== META GLASSES INPUT ====================
+    function setupMetaControls() {
+      document.addEventListener('keydown', (e) => {
+        switch (e.key) {
+          case 'ArrowUp':
             tapKey('UP');
-
-          if (direction === 'down')
+            break;
+          case 'ArrowDown':
             tapKey('DOWN');
-
-          if (direction === 'left')
+            break;
+          case 'ArrowLeft':
             tapKey('LEFT');
-
-          if (direction === 'right')
+            break;
+          case 'ArrowRight':
             tapKey('RIGHT');
+            break;
+          case 'Enter':
+            tapKey('A');           // Tap = A
+            break;
+          case 'Escape':
+          case 'Backspace':
+            tapKey('B');           // Double-tap simulation via Escape if supported
+            break;
+          case 'Shift':
+          case ' ':
+            tapKey('START');       // Hold simulation via Shift/Space
+            break;
+        }
+      });
+    }
 
-          break;
+    // Wait for emulator
+    function waitForEmulator() {
+      if (window.EJS_emulator && EJS_emulator.gameManager) {
+        emulatorReady = true;
+        console.log("✅ Emulator Ready for Meta Glasses");
+        document.getElementById('status').textContent = "Ready - Use Gestures";
+        setupMetaControls();
+      } else {
+        setTimeout(waitForEmulator, 500);
       }
     }
 
-    // =========================================
-    // TOUCH CONTROLS
-    // =========================================
-
-    function setupControls() {
-
-      const game =
-        document.getElementById('game');
-
-      let touchStartX = 0;
-      let touchStartY = 0;
-
-      let lastTap = 0;
-
-      let holdTimer;
-
-      // =====================================
-      // TOUCH START
-      // =====================================
-
-      game.addEventListener(
-        'touchstart',
-        (e) => {
-
-          const touch = e.touches[0];
-
-          touchStartX = touch.clientX;
-          touchStartY = touch.clientY;
-
-          holdTimer = setTimeout(() => {
-
-            handleGesture('hold');
-
-          }, 500);
-
-        },
-        { passive: true }
-      );
-
-      // =====================================
-      // TOUCH END
-      // =====================================
-
-      game.addEventListener(
-        'touchend',
-        (e) => {
-
-          clearTimeout(holdTimer);
-
-          const touch =
-            e.changedTouches[0];
-
-          const deltaX =
-            touch.clientX - touchStartX;
-
-          const deltaY =
-            touch.clientY - touchStartY;
-
-          const absX =
-            Math.abs(deltaX);
-
-          const absY =
-            Math.abs(deltaY);
-
-          const now = Date.now();
-
-          // =================================
-          // DOUBLE TAP = B
-          // =================================
-
-          if (now - lastTap < 300) {
-
-            handleGesture('doubletap');
-
-            lastTap = 0;
-            return;
-          }
-
-          lastTap = now;
-
-          // =================================
-          // TAP = A
-          // =================================
-
-          if (absX < 20 && absY < 20) {
-
-            handleGesture('tap');
-            return;
-          }
-
-          // =================================
-          // SWIPES
-          // =================================
-
-          if (absX > absY) {
-
-            if (deltaX > 0) {
-
-              handleGesture('swipe', 'right');
-
-            } else {
-
-              handleGesture('swipe', 'left');
-
-            }
-
-          } else {
-
-            if (deltaY > 0) {
-
-              handleGesture('swipe', 'down');
-
-            } else {
-
-              handleGesture('swipe', 'up');
-
-            }
-
-          }
-
-        },
-        { passive: true }
-      );
-
-      console.log("Touch controls ready");
-
-    }
-
-    // =========================================
-    // META NEURAL BAND INPUT
-    // =========================================
-
-    window.addEventListener(
-      'keydown',
-      (e) => {
-
-        console.log(
-          "KEY EVENT:",
-          e.key,
-          e.code
-        );
-
-        // =====================================
-        // SWIPE UP
-        // =====================================
-
-        if (
-          e.key === 'ArrowUp'
-        ) {
-
-          handleGesture(
-            'swipe',
-            'up'
-          );
-
-          e.preventDefault();
-        }
-
-        // =====================================
-        // SWIPE DOWN
-        // =====================================
-
-        if (
-          e.key === 'ArrowDown'
-        ) {
-
-          handleGesture(
-            'swipe',
-            'down'
-          );
-
-          e.preventDefault();
-        }
-
-        // =====================================
-        // SWIPE LEFT
-        // =====================================
-
-        if (
-          e.key === 'ArrowLeft'
-        ) {
-
-          handleGesture(
-            'swipe',
-            'left'
-          );
-
-          e.preventDefault();
-        }
-
-        // =====================================
-        // SWIPE RIGHT
-        // =====================================
-
-        if (
-          e.key === 'ArrowRight'
-        ) {
-
-          handleGesture(
-            'swipe',
-            'right'
-          );
-
-          e.preventDefault();
-        }
-
-        // =====================================
-        // TAP = A
-        // =====================================
-
-        if (
-          e.key === 'Enter' ||
-          e.key === ' '
-        ) {
-
-          handleGesture('tap');
-
-          e.preventDefault();
-        }
-
-        // =====================================
-        // DOUBLE TAP = B
-        // =====================================
-
-        if (
-          e.key === 'Escape' ||
-          e.key === 'Backspace'
-        ) {
-
-          handleGesture(
-            'doubletap'
-          );
-
-          e.preventDefault();
-        }
-
-        // =====================================
-        // HOLD = START
-        // =====================================
-
-        if (
-          e.key === 'Shift' ||
-          e.key === 'Tab'
-        ) {
-
-          handleGesture('hold');
-
-          e.preventDefault();
-        }
-
-      },
-      true
-    );
-
+    window.addEventListener('load', () => {
+      document.getElementById('status').textContent = "Starting Pokémon...";
+      waitForEmulator();
+    });
   </script>
-
 </body>
 </html>
