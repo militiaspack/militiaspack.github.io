@@ -13,48 +13,49 @@
     }
 
     header {
-      background: rgba(0, 255, 0, 0.1); padding: 10px; text-align: center; border-bottom: 2px solid #0f0;
+      background: rgba(0, 255, 0, 0.1); padding: 12px; text-align: center; border-bottom: 2px solid #0f0;
       text-shadow: 0 0 10px #0f0;
     }
 
     .library {
-      flex: 1; overflow-y: auto; padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;
+      flex: 1; overflow-y: auto; padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;
     }
 
     .game {
-      background: #111; border: 2px solid #0f0; padding: 10px; text-align: center; cursor: pointer;
-      transition: all 0.2s; font-size: 12px;
+      background: #111; border: 2px solid #0f0; padding: 12px; text-align: center; cursor: pointer;
+      transition: all 0.2s; font-size: 13px; border-radius: 4px;
     }
 
-    .game:hover { background: #0a0; transform: scale(1.05); }
+    .game:hover { background: #020; transform: scale(1.05); box-shadow: 0 0 15px #0f0; }
 
     #emulator-frame {
-      flex: 1; border: none; background: #000; width: 100%;
+      flex: 1; border: none; background: #000; width: 100%; height: 100%;
     }
 
     .controls {
-      position: fixed; bottom: 0; left: 0; right: 0; height: 180px; pointer-events: none;
+      position: fixed; bottom: 0; left: 0; right: 0; height: 190px; pointer-events: none; z-index: 10;
     }
 
     .dpad {
-      position: absolute; left: 20px; bottom: 30px; width: 120px; height: 120px;
-      background: rgba(0,255,0,0.15); border: 3px solid #0f0; border-radius: 20px;
+      position: absolute; left: 25px; bottom: 35px; width: 130px; height: 130px;
+      background: rgba(0,255,0,0.12); border: 4px solid #0f0; border-radius: 25px;
       pointer-events: all;
     }
 
     .ab-buttons {
-      position: absolute; right: 30px; bottom: 50px;
+      position: absolute; right: 35px; bottom: 55px;
       pointer-events: all;
     }
 
     .btn {
-      width: 60px; height: 60px; border-radius: 50%; border: 4px solid #0f0; background: rgba(0,255,0,0.1);
-      display: inline-flex; align-items: center; justify-content: center; margin: 5px; color: #0f0; font-size: 18px;
+      width: 68px; height: 68px; border-radius: 50%; border: 4px solid #0f0; background: rgba(0,255,0,0.12);
+      display: inline-flex; align-items: center; justify-content: center; margin: 8px; color: #0f0; font-size: 20px;
+      box-shadow: 0 0 10px #0f0;
     }
 
     .overlay {
-      position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 8px 12px; border: 1px solid #0f0;
-      font-size: 11px;
+      position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.8); padding: 10px 14px; border: 1px solid #0f0;
+      font-size: 12px; line-height: 1.4;
     }
   </style>
 </head>
@@ -66,7 +67,7 @@
 
   <div id="library" class="library"></div>
 
-  <iframe id="emulator-frame" style="display:none;"></iframe>
+  <iframe id="emulator-frame" style="display:none;" allowfullscreen></iframe>
 
   <div class="controls">
     <div class="dpad" id="dpad"></div>
@@ -78,22 +79,24 @@
 
     <div class="overlay">
       Swipe = D-Pad<br>
-      Tap = A | Double Tap = B<br>
+      Tap = A | Double Tap = B<br>
       Hold = START
     </div>
   </div>
 
   <script>
     const games = [
-      {name: "Advance Wars", id: "advancewars"},
-      {name: "Advance Wars 2", id: "advancewars2"},
       {name: "Pokémon Emerald", id: "pokemonemerald"},
       {name: "Pokémon FireRed", id: "pokemonred"},
+      {name: "Advance Wars", id: "advancewars"},
+      {name: "Advance Wars 2", id: "advancewars2"},
       {name: "The Minish Cap", id: "zelda_minish"},
       {name: "Mario & Luigi Superstar Saga", id: "superstar"},
       {name: "Metroid Fusion", id: "metroid_fusion"},
       {name: "Kirby & The Amazing Mirror", id: "kirbymirror"},
-      // Add more from https://gba.js.org/ as needed
+      {name: "Golden Sun", id: "goldensun"},
+      {name: "Mario Kart Super Circuit", id: "mariokart"},
+      // Add more as you like
     ];
 
     const library = document.getElementById('library');
@@ -114,27 +117,25 @@
     }
 
     // Touch Controls
-    let touchStartX, touchStartY, holdTimer;
+    let lastTap = 0;
+    let holdTimer;
 
-    // D-Pad swipe
     const dpad = document.getElementById('dpad');
+
     dpad.addEventListener('touchstart', e => {
-      const touch = e.touches[0];
-      touchStartX = touch.clientX;
-      touchStartY = touch.clientY;
+      e.preventDefault();
     });
 
     dpad.addEventListener('touchmove', e => {
       e.preventDefault();
       const touch = e.touches[0];
-      const dx = touch.clientX - touchStartX;
-      const dy = touch.clientY - touchStartY;
+      const dx = touch.clientX - dpad.getBoundingClientRect().left - 65;
+      const dy = touch.clientY - dpad.getBoundingClientRect().top - 65;
 
-      // Send arrow keys to iframe
       const iframeWin = frame.contentWindow;
       if (!iframeWin) return;
 
-      if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+      if (Math.abs(dx) > 25 || Math.abs(dy) > 25) {
         if (Math.abs(dx) > Math.abs(dy)) {
           iframeWin.postMessage({key: dx > 0 ? 'ArrowRight' : 'ArrowLeft'}, '*');
         } else {
@@ -143,33 +144,30 @@
       }
     });
 
-    // A / B buttons
     document.getElementById('btnA').addEventListener('touchstart', () => {
-      frame.contentWindow?.postMessage({key: 'KeyZ'}, '*'); // Usually A = Z in gba.js
+      frame.contentWindow?.postMessage({key: 'KeyZ'}, '*');
     });
 
     document.getElementById('btnB').addEventListener('touchstart', () => {
-      frame.contentWindow?.postMessage({key: 'KeyX'}, '*'); // Usually B = X
+      frame.contentWindow?.postMessage({key: 'KeyX'}, '*');
     });
 
-    // Double tap for B on whole screen when playing
-    let lastTap = 0;
-    document.addEventListener('touchend', e => {
+    // Double tap anywhere on screen = B
+    document.addEventListener('touchend', () => {
       if (frame.style.display === 'none') return;
-      const currentTime = new Date().getTime();
-      const tapLength = currentTime - lastTap;
-      if (tapLength < 300 && tapLength > 0) {
-        frame.contentWindow?.postMessage({key: 'KeyX'}, '*'); // Double tap = B
+      const now = Date.now();
+      if (now - lastTap < 350) {
+        frame.contentWindow?.postMessage({key: 'KeyX'}, '*');
       }
-      lastTap = currentTime;
+      lastTap = now;
     });
 
-    // Tap and hold for Start
+    // Long press = Start
     document.addEventListener('touchstart', e => {
       if (frame.style.display === 'block') {
         holdTimer = setTimeout(() => {
-          frame.contentWindow?.postMessage({key: 'Enter'}, '*'); // Start button
-        }, 600);
+          frame.contentWindow?.postMessage({key: 'Enter'}, '*');
+        }, 650);
       }
     });
 
