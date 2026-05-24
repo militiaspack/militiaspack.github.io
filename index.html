@@ -1,4 +1,5 @@
-<script src="https://unpkg.com/gba.js/dist/gba.min.js"></script>
+<!-- Working GBA Emulator -->
+<script src="https://cdn.jsdelivr.net/gh/endrift/gba.js/build/gba.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -10,7 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let overlay = document.getElementById("overlay");
   const canvas = document.getElementById("screen");
 
-  // Fallback if overlay is missing
   if (!overlay) {
     overlay = document.createElement("div");
     overlay.id = "overlay";
@@ -39,13 +39,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const gba = new GameBoyAdvance();
   gba.setCanvas(canvas);
 
+  gba.logLevel = gba.LOG_ERROR;
+  gba.setLogger((level, msg) => console.log(msg));
+
   overlay.textContent = "Loading BIOS...";
 
   fetch("./gba_bios.bin")
     .then(res => res.arrayBuffer())
     .then(bios => {
 
-      gba.loadBIOS(bios);
+      gba.setBios(bios);
 
       overlay.textContent = "Loading ROM...";
 
@@ -55,14 +58,11 @@ document.addEventListener("DOMContentLoaded", () => {
     .then(res => res.arrayBuffer())
     .then(buffer => {
 
-      if (gba.loadROM) {
-        gba.loadROM(buffer);
-      } else {
-        gba.loadRomFromFile(buffer);
-      }
+      gba.setRom(buffer);
+      gba.reset();
+      gba.runStable();
 
       overlay.textContent = "READY";
-      gba.runStable();
 
     })
     .catch(err => {
