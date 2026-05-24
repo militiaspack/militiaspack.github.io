@@ -66,9 +66,23 @@ gba.setCanvas(canvas);
 gba.loadBIOS("./gba_bios.bin");
 
 // Load ROM
-gba.loadRom("./pokemon.gba", () => {
-  overlay.textContent = "READY - waiting for input";
-});
+fetch("./pokemon.gba")
+  .then(res => res.arrayBuffer())
+  .then(buffer => {
+
+    gba.loadRomFromFile(buffer);
+
+    status.textContent = "READY";
+
+    gba.runStable();
+
+  })
+  .catch(err => {
+
+    status.textContent =
+      "ROM LOAD FAILED: " + err;
+
+  });
 
 // ===============================
 // INPUT STATE
