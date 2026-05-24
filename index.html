@@ -2,82 +2,178 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=600, initial-scale=1.0, user-scalable=no">
-  <title>Pokémon Ray-Ban GBA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RAYBAN • GBA</title>
   <style>
-    body { margin:0; padding:0; background:#000; overflow:hidden; }
-    canvas { image-rendering: pixelated; width:100%; height:100vh; display:block; }
-    #status { position:absolute; top:15px; left:15px; color:#0f0; font-family:monospace; background:rgba(0,0,0,0.8); padding:10px 15px; border-radius:6px; z-index:10; white-space:pre-wrap; }
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    body {
+      margin: 0; padding: 0; background: #000; color: #0f0; font-family: 'Press Start 2P', sans-serif;
+      overflow: hidden; height: 100vh; display: flex; flex-direction: column;
+    }
+
+    header {
+      background: rgba(0, 255, 0, 0.1); padding: 10px; text-align: center; border-bottom: 2px solid #0f0;
+      text-shadow: 0 0 10px #0f0;
+    }
+
+    .library {
+      flex: 1; overflow-y: auto; padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;
+    }
+
+    .game {
+      background: #111; border: 2px solid #0f0; padding: 10px; text-align: center; cursor: pointer;
+      transition: all 0.2s; font-size: 12px;
+    }
+
+    .game:hover { background: #0a0; transform: scale(1.05); }
+
+    #emulator-frame {
+      flex: 1; border: none; background: #000; width: 100%;
+    }
+
+    .controls {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 180px; pointer-events: none;
+    }
+
+    .dpad {
+      position: absolute; left: 20px; bottom: 30px; width: 120px; height: 120px;
+      background: rgba(0,255,0,0.15); border: 3px solid #0f0; border-radius: 20px;
+      pointer-events: all;
+    }
+
+    .ab-buttons {
+      position: absolute; right: 30px; bottom: 50px;
+      pointer-events: all;
+    }
+
+    .btn {
+      width: 60px; height: 60px; border-radius: 50%; border: 4px solid #0f0; background: rgba(0,255,0,0.1);
+      display: inline-flex; align-items: center; justify-content: center; margin: 5px; color: #0f0; font-size: 18px;
+    }
+
+    .overlay {
+      position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 8px 12px; border: 1px solid #0f0;
+      font-size: 11px;
+    }
   </style>
 </head>
 <body>
-  <div id="status">Loading emulator...</div>
-  <canvas id="screen" width="240" height="160"></canvas>
 
-  <!-- lrusso pure JS GBA Emulator (best for single-file) -->
-  <script src="https://cdn.jsdelivr.net/gh/lrusso/GameBoyAdvance@master/GameBoyAdvance.min.js"></script>
+  <header>
+    <h1>RAYBAN META • GBA</h1>
+  </header>
+
+  <div id="library" class="library"></div>
+
+  <iframe id="emulator-frame" style="display:none;"></iframe>
+
+  <div class="controls">
+    <div class="dpad" id="dpad"></div>
+    
+    <div class="ab-buttons">
+      <div class="btn" id="btnA">A</div>
+      <div class="btn" id="btnB">B</div>
+    </div>
+
+    <div class="overlay">
+      Swipe = D-Pad<br>
+      Tap = A | Double Tap = B<br>
+      Hold = START
+    </div>
+  </div>
 
   <script>
-    const canvas = document.getElementById('screen');
-    const statusEl = document.getElementById('status');
-    let gba = null;
+    const games = [
+      {name: "Advance Wars", id: "advancewars"},
+      {name: "Advance Wars 2", id: "advancewars2"},
+      {name: "Pokémon Emerald", id: "pokemonemerald"},
+      {name: "Pokémon FireRed", id: "pokemonred"},
+      {name: "The Minish Cap", id: "zelda_minish"},
+      {name: "Mario & Luigi Superstar Saga", id: "superstar"},
+      {name: "Metroid Fusion", id: "metroid_fusion"},
+      {name: "Kirby & The Amazing Mirror", id: "kirbymirror"},
+      // Add more from https://gba.js.org/ as needed
+    ];
 
-    function updateStatus(msg, color = '#0f0') {
-      statusEl.textContent = msg;
-      statusEl.style.color = color;
+    const library = document.getElementById('library');
+    const frame = document.getElementById('emulator-frame');
+
+    games.forEach(game => {
+      const el = document.createElement('div');
+      el.className = 'game';
+      el.textContent = game.name;
+      el.onclick = () => loadGame(game.id);
+      library.appendChild(el);
+    });
+
+    function loadGame(id) {
+      library.style.display = 'none';
+      frame.style.display = 'block';
+      frame.src = `https://gba.js.org/player#${id}`;
     }
 
-    async function loadAndRun() {
-      try {
-        updateStatus("Initializing GBA emulator...");
+    // Touch Controls
+    let touchStartX, touchStartY, holdTimer;
 
-        gba = new GameBoyAdvance();
-        gba.setCanvas(canvas);
+    // D-Pad swipe
+    const dpad = document.getElementById('dpad');
+    dpad.addEventListener('touchstart', e => {
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+    });
 
-        updateStatus("Fetching pokemon.gba...");
-        const res = await fetch('pokemon.gba', { cache: 'no-cache' });
+    dpad.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const dx = touch.clientX - touchStartX;
+      const dy = touch.clientY - touchStartY;
 
-        if (!res.ok) throw new Error("pokemon.gba not found");
+      // Send arrow keys to iframe
+      const iframeWin = frame.contentWindow;
+      if (!iframeWin) return;
 
-        const romBuffer = await res.arrayBuffer();
-
-        updateStatus("Loading ROM...");
-        gba.loadROM(romBuffer);
-
-        updateStatus("Starting Pokémon...", "#ff0");
-        gba.run();
-
-        setTimeout(() => statusEl.style.display = "none", 2500);
-
-      } catch (e) {
-        console.error(e);
-        updateStatus("ERROR:\n" + e.message + "\n\nMake sure:\n• pokemon.gba is in same folder\n• Filename is lowercase", "#f66");
+      if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+          iframeWin.postMessage({key: dx > 0 ? 'ArrowRight' : 'ArrowLeft'}, '*');
+        } else {
+          iframeWin.postMessage({key: dy > 0 ? 'ArrowDown' : 'ArrowUp'}, '*');
+        }
       }
-    }
+    });
 
-    // Neural Band Controls (Meta glasses map gestures to keys)
-    function setupControls() {
-      const map = {
-        ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-        'z': 'a', ' ': 'a', 'Enter': 'a',     // Tap = A
-        'x': 'b',                             // Double tap simulation = B
-        's': 'start',                         // Tap & hold = Start
-        'Shift': 'select'
-      };
+    // A / B buttons
+    document.getElementById('btnA').addEventListener('touchstart', () => {
+      frame.contentWindow?.postMessage({key: 'KeyZ'}, '*'); // Usually A = Z in gba.js
+    });
 
-      document.addEventListener('keydown', e => {
-        if (gba && map[e.key]) gba.keyPress(map[e.key]);
-      });
+    document.getElementById('btnB').addEventListener('touchstart', () => {
+      frame.contentWindow?.postMessage({key: 'KeyX'}, '*'); // Usually B = X
+    });
 
-      document.addEventListener('keyup', e => {
-        if (gba && map[e.key]) gba.keyRelease(map[e.key]);
-      });
-    }
+    // Double tap for B on whole screen when playing
+    let lastTap = 0;
+    document.addEventListener('touchend', e => {
+      if (frame.style.display === 'none') return;
+      const currentTime = new Date().getTime();
+      const tapLength = currentTime - lastTap;
+      if (tapLength < 300 && tapLength > 0) {
+        frame.contentWindow?.postMessage({key: 'KeyX'}, '*'); // Double tap = B
+      }
+      lastTap = currentTime;
+    });
 
-    window.onload = () => {
-      setupControls();
-      loadAndRun();
-    };
+    // Tap and hold for Start
+    document.addEventListener('touchstart', e => {
+      if (frame.style.display === 'block') {
+        holdTimer = setTimeout(() => {
+          frame.contentWindow?.postMessage({key: 'Enter'}, '*'); // Start button
+        }, 600);
+      }
+    });
+
+    document.addEventListener('touchend', () => clearTimeout(holdTimer));
   </script>
 </body>
 </html>
