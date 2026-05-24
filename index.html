@@ -54,6 +54,7 @@
       height: 100vh;
       image-rendering: pixelated;
       background: black;
+      touch-action: none;
     }
 
   </style>
@@ -97,6 +98,7 @@
     // Cleaner UI
     EJS_disableDatabases = true;
     EJS_hideSettings = true;
+
     EJS_Buttons = {
       playPause: false,
       restart: false,
@@ -152,10 +154,10 @@
     waitForEmulator();
 
     // =========================================
-    // CONTROL SYSTEM
+    // BUTTON PRESS HELPER
     // =========================================
 
-    function tapKey(key) {
+    function tapKey(key, duration = 80) {
 
       try {
 
@@ -171,7 +173,7 @@
             .controls
             .releaseKey(key);
 
-        }, 80);
+        }, duration);
 
       } catch (err) {
 
@@ -179,6 +181,66 @@
 
       }
     }
+
+    // =========================================
+    // UNIVERSAL GESTURE HANDLER
+    // =========================================
+
+    function handleGesture(type, direction = null) {
+
+      console.log("Gesture:", type, direction);
+
+      switch(type) {
+
+        // ===============================
+        // TAP = A
+        // ===============================
+
+        case 'tap':
+          tapKey('A');
+          break;
+
+        // ===============================
+        // DOUBLE TAP = B
+        // ===============================
+
+        case 'doubletap':
+          tapKey('B');
+          break;
+
+        // ===============================
+        // HOLD = START
+        // ===============================
+
+        case 'hold':
+          tapKey('START');
+          break;
+
+        // ===============================
+        // SWIPES = DPAD
+        // ===============================
+
+        case 'swipe':
+
+          if (direction === 'left')
+            tapKey('LEFT');
+
+          if (direction === 'right')
+            tapKey('RIGHT');
+
+          if (direction === 'up')
+            tapKey('UP');
+
+          if (direction === 'down')
+            tapKey('DOWN');
+
+          break;
+      }
+    }
+
+    // =========================================
+    // CONTROL SYSTEM
+    // =========================================
 
     function setupControls() {
 
@@ -208,7 +270,7 @@
           // HOLD = START
           holdTimer = setTimeout(() => {
 
-            tapKey('START');
+            handleGesture('hold');
 
           }, 500);
 
@@ -249,7 +311,7 @@
 
           if (now - lastTap < 300) {
 
-            tapKey('B');
+            handleGesture('doubletap');
 
             lastTap = 0;
             return;
@@ -263,7 +325,7 @@
 
           if (absX < 20 && absY < 20) {
 
-            tapKey('A');
+            handleGesture('tap');
             return;
           }
 
@@ -275,11 +337,11 @@
 
             if (deltaX > 0) {
 
-              tapKey('RIGHT');
+              handleGesture('swipe', 'right');
 
             } else {
 
-              tapKey('LEFT');
+              handleGesture('swipe', 'left');
 
             }
 
@@ -292,11 +354,11 @@
 
           if (deltaY > 0) {
 
-            tapKey('DOWN');
+            handleGesture('swipe', 'down');
 
           } else {
 
-            tapKey('UP');
+            handleGesture('swipe', 'up');
 
           }
 
@@ -313,28 +375,60 @@
         (e) => {
 
           if (e.key === 'ArrowUp')
-            tapKey('UP');
+            handleGesture('swipe', 'up');
 
           if (e.key === 'ArrowDown')
-            tapKey('DOWN');
+            handleGesture('swipe', 'down');
 
           if (e.key === 'ArrowLeft')
-            tapKey('LEFT');
+            handleGesture('swipe', 'left');
 
           if (e.key === 'ArrowRight')
-            tapKey('RIGHT');
+            handleGesture('swipe', 'right');
 
           if (e.key === 'z')
-            tapKey('A');
+            handleGesture('tap');
 
           if (e.key === 'x')
-            tapKey('B');
+            handleGesture('doubletap');
 
           if (e.key === 'Enter')
-            tapKey('START');
+            handleGesture('hold');
 
         }
       );
+
+      // =====================================
+      // META GLASSES GESTURE BRIDGE
+      // =====================================
+
+      // External systems can inject gestures:
+      //
+      // window.dispatchEvent(
+      //   new CustomEvent('metaGesture', {
+      //     detail: {
+      //       type: 'swipe',
+      //       direction: 'left'
+      //     }
+      //   })
+      // );
+
+      window.addEventListener(
+        'metaGesture',
+        (e) => {
+
+          const {
+            type,
+            direction
+          } = e.detail;
+
+          handleGesture(type, direction);
+
+        }
+      );
+
+   
+      console.log("Controls Ready");
 
     }
 
