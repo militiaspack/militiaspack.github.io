@@ -10,66 +10,105 @@
   body {
     margin: 0;
     background: black;
-    color: #00ff66;
-    font-family: monospace;
     overflow: hidden;
-    touch-action: none;
+    font-family: monospace;
+    color: #00ff66;
   }
 
-  #screen {
+  #wrap {
     width: 100vw;
     height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-direction: column;
   }
 
-  #display {
-    font-size: 20px;
-    text-align: center;
-    white-space: pre-line;
+  canvas {
+    width: 100vw;
+    height: 100vh;
+    image-rendering: pixelated;
   }
 
-  #hint {
-    font-size: 10px;
+  #overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 12px;
     opacity: 0.6;
-    margin-top: 10px;
   }
 </style>
 </head>
 
 <body>
 
-<div id="screen">
-  <div id="display">READY</div>
-  <div id="hint">Tap / Swipe / Hold</div>
+<div id="overlay">Loading GBA...</div>
+<div id="wrap">
+  <canvas id="screen"></canvas>
 </div>
+
+<!-- GBA.js emulator -->
+<script src="https://cdn.jsdelivr.net/npm/gba.js/dist/gba.min.js"></script>
 
 <script>
 
-const display = document.getElementById("display");
+const overlay = document.getElementById("overlay");
+const canvas = document.getElementById("screen");
 
 // ===============================
-// INPUT LAYER (YOUR GAME API)
+// INIT EMULATOR
 // ===============================
 
-function press(button) {
-  console.log("INPUT:", button);
-  display.textContent = button;
+const gba = new GameBoyAdvance();
+
+gba.setCanvas(canvas);
+
+// Load BIOS (required)
+gba.loadBIOS("./gba_bios.bin");
+
+// Load ROM
+gba.loadRom("./pokemon.gba", () => {
+  overlay.textContent = "READY - waiting for input";
+});
+
+// ===============================
+// INPUT STATE
+// ===============================
+
+const input = {
+  A: 0,
+  B: 0,
+  UP: 0,
+  DOWN: 0,
+  LEFT: 0,
+  RIGHT: 0,
+  START: 0
+};
+
+function update() {
+  gba.keypad.set(input);
 }
 
 // ===============================
-// META WEB APP INPUT HOOK
+// PRESS HELPERS
 // ===============================
-// This is the ONLY part that depends on Meta runtime.
 
-function handleMetaGesture(event) {
+function press(key, time = 120) {
+  input[key] = 1;
+  update();
 
-  // expected shape:
-  // { type: "tap" | "swipe" | "hold", direction?: "left/right/up/down" }
+  setTimeout(() => {
+    input[key] = 0;
+    update();
+  }, time);
+}
 
-  const { type, direction } = event;
+// ===============================
+// META INPUT LAYER
+// ===============================
+
+function handleGesture(e) {
+
+  const { type, direction } = e;
 
   switch (type) {
 
@@ -97,29 +136,27 @@ function handleMetaGesture(event) {
 }
 
 // ===============================
-// META EVENT LISTENER
+// META WEB APP EVENT HOOK
 // ===============================
-// This is what the Meta Web App runtime should trigger
 
 window.addEventListener("metaGesture", (e) => {
-  handleMetaGesture(e.detail);
+  handleGesture(e.detail);
 });
 
 // ===============================
-// DEBUG MODE (so you can test NOW)
+// FALLBACK TEST INPUTS
 // ===============================
-// Remove later if Meta runtime overrides input
 
 window.addEventListener("keydown", (e) => {
 
-  if (e.key === "ArrowUp") handleMetaGesture({type:"swipe",direction:"up"});
-  if (e.key === "ArrowDown") handleMetaGesture({type:"swipe",direction:"down"});
-  if (e.key === "ArrowLeft") handleMetaGesture({type:"swipe",direction:"left"});
-  if (e.key === "ArrowRight") handleMetaGesture({type:"swipe",direction:"right"});
+  if (e.key === "ArrowUp") handleGesture({type:"swipe",direction:"up"});
+  if (e.key === "ArrowDown") handleGesture({type:"swipe",direction:"down"});
+  if (e.key === "ArrowLeft") handleGesture({type:"swipe",direction:"left"});
+  if (e.key === "ArrowRight") handleGesture({type:"swipe",direction:"right"});
 
-  if (e.key === "Enter") handleMetaGesture({type:"tap"});
-  if (e.key === " ") handleMetaGesture({type:"doubleTap"});
-  if (e.key === "Shift") handleMetaGesture({type:"hold"});
+  if (e.key === "Enter") handleGesture({type:"tap"});
+  if (e.key === " ") handleGesture({type:"doubleTap"});
+  if (e.key === "Shift") handleGesture({type:"hold"});
 });
 
 </script>
