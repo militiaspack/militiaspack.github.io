@@ -3,31 +3,80 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=600, initial-scale=1.0, user-scalable=no">
-  <title>Pokémon Ray-Ban</title>
+  <title>Pokémon Ray-Ban GBA</title>
   <style>
     body { margin:0; padding:0; background:#000; overflow:hidden; }
-    iframe { width:100%; height:100vh; border:none; }
-    #status { position:absolute; top:10px; left:10px; color:#0f0; z-index:10; font-family:monospace; background:rgba(0,0,0,0.7); padding:8px; }
+    canvas { image-rendering: pixelated; width:100%; height:100vh; display:block; }
+    #status { position:absolute; top:15px; left:15px; color:#0f0; font-family:monospace; background:rgba(0,0,0,0.8); padding:10px 15px; border-radius:6px; z-index:10; white-space:pre-wrap; }
   </style>
 </head>
 <body>
-  <div id="status">Loading Pokémon...</div>
-  <iframe id="emu" src="https://andychase.me/gbajs2/" allow="fullscreen"></iframe>
+  <div id="status">Loading emulator...</div>
+  <canvas id="screen" width="240" height="160"></canvas>
+
+  <!-- lrusso pure JS GBA Emulator (best for single-file) -->
+  <script src="https://cdn.jsdelivr.net/gh/lrusso/GameBoyAdvance@master/GameBoyAdvance.min.js"></script>
 
   <script>
-    const status = document.getElementById('status');
-    const iframe = document.getElementById('emu');
+    const canvas = document.getElementById('screen');
+    const statusEl = document.getElementById('status');
+    let gba = null;
 
-    // Note: Full auto-load of local pokemon.gba is hard due to iframe restrictions.
-    // For best results, upload your pokemon.gba to a public URL and replace the line below.
-    // Example: const romUrl = "https://your-site.com/pokemon.gba";
+    function updateStatus(msg, color = '#0f0') {
+      statusEl.textContent = msg;
+      statusEl.style.color = color;
+    }
+
+    async function loadAndRun() {
+      try {
+        updateStatus("Initializing GBA emulator...");
+
+        gba = new GameBoyAdvance();
+        gba.setCanvas(canvas);
+
+        updateStatus("Fetching pokemon.gba...");
+        const res = await fetch('pokemon.gba', { cache: 'no-cache' });
+
+        if (!res.ok) throw new Error("pokemon.gba not found");
+
+        const romBuffer = await res.arrayBuffer();
+
+        updateStatus("Loading ROM...");
+        gba.loadROM(romBuffer);
+
+        updateStatus("Starting Pokémon...", "#ff0");
+        gba.run();
+
+        setTimeout(() => statusEl.style.display = "none", 2500);
+
+      } catch (e) {
+        console.error(e);
+        updateStatus("ERROR:\n" + e.message + "\n\nMake sure:\n• pokemon.gba is in same folder\n• Filename is lowercase", "#f66");
+      }
+    }
+
+    // Neural Band Controls (Meta glasses map gestures to keys)
+    function setupControls() {
+      const map = {
+        ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+        'z': 'a', ' ': 'a', 'Enter': 'a',     // Tap = A
+        'x': 'b',                             // Double tap simulation = B
+        's': 'start',                         // Tap & hold = Start
+        'Shift': 'select'
+      };
+
+      document.addEventListener('keydown', e => {
+        if (gba && map[e.key]) gba.keyPress(map[e.key]);
+      });
+
+      document.addEventListener('keyup', e => {
+        if (gba && map[e.key]) gba.keyRelease(map[e.key]);
+      });
+    }
 
     window.onload = () => {
-      // Try to communicate with the emulator (limited)
-      iframe.onload = () => {
-        status.textContent = "Emulator loaded - use Neural Band (swipe D-pad, tap A/B)";
-        setTimeout(() => status.style.display = 'none', 4000);
-      };
+      setupControls();
+      loadAndRun();
     };
   </script>
 </body>
