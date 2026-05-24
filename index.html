@@ -2,140 +2,61 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=600, height=600, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Pokemon on Meta Glasses</title>
-
+  <meta name="viewport" content="width=600, initial-scale=1.0">
+  <title>Ray-Ban GBA Emulator</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
-    body {
-      margin: 0;
-      padding: 0;
-      background: #000;
-      overflow: hidden;
-      width: 600px;
-      height: 600px;
-      font-family: 'Press Start 2P', monospace;
-      color: #00ff66;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #container {
-      text-align: center;
-      width: 100%;
-    }
-
-    h1 {
-      font-size: 16px;
-      margin-bottom: 8px;
-      text-shadow: 0 0 10px #00ff66;
-    }
-
-    #status {
-      font-size: 10px;
-      color: #888;
-      margin-bottom: 12px;
-    }
-
-    #game {
-      width: 480px;
-      height: 320px;
-      image-rendering: pixelated;
-      background: black;
-      border: 4px solid #222;
-    }
+    body { margin:0; background:black; color:white; font-family:sans-serif; overflow:hidden; }
+    #screen { image-rendering: pixelated; width: 100%; height: auto; max-height: 100vh; }
+    #controls { position: absolute; bottom: 10px; left: 10px; opacity: 0.7; }
   </style>
 </head>
-<body tabindex="0">
-
-  <div id="container">
-    <h1>POKÉMON GBA</h1>
-    <div id="status">Loading Pokémon...</div>
-    <div id="game"></div>
+<body>
+  <canvas id="screen" width="240" height="160"></canvas>
+  
+  <div id="controls">
+    <input type="file" id="romInput" accept=".gba">
+    <button onclick="loadDefault()">Load Pokémon (if embedded)</button>
   </div>
 
-  <!-- EmulatorJS -->
-  <script src="https://cdn.emulatorjs.org/latest/data/loader.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/gh/andychase/gbajs2@master/js/gba.js"></script> <!-- Use a hosted version or self-host gbajs2 -->
   <script>
-    // ==================== EMULATOR CONFIG ====================
-    EJS_player = "#game";
-    EJS_core = "gba";
-    EJS_pathtodata = "https://cdn.emulatorjs.org/latest/data/";
-    EJS_gameUrl = "./pokemon.gba";
-    EJS_startOnLoaded = true;
+    const canvas = document.getElementById('screen');
+    const gba = new GameBoyAdvance();
+    gba.setCanvas(canvas);
 
-    EJS_disableDatabases = true;
-    EJS_hideSettings = true;
-    EJS_Buttons = {
-      playPause: false, restart: false, mute: false,
-      settings: false, fullscreen: false, saveState: false,
-      loadState: false, screenRecord: false, gamepad: false
-    };
-
-    let emulatorReady = false;
-
-    function tapKey(key, duration = 80) {
-      if (!emulatorReady || !window.EJS_emulator) return;
-      try {
-        EJS_emulator.gameManager.controls.pressKey(key);
-        setTimeout(() => {
-          EJS_emulator.gameManager.controls.releaseKey(key);
-        }, duration);
-      } catch (e) {
-        console.error(e);
+    // Load ROM from file picker
+    document.getElementById('romInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          gba.loadROMArrayBuffer(ev.target.result);
+          gba.run();
+        };
+        reader.readAsArrayBuffer(file);
       }
-    }
-
-    // ==================== META GLASSES INPUT ====================
-    function setupMetaControls() {
-      document.addEventListener('keydown', (e) => {
-        switch (e.key) {
-          case 'ArrowUp':
-            tapKey('UP');
-            break;
-          case 'ArrowDown':
-            tapKey('DOWN');
-            break;
-          case 'ArrowLeft':
-            tapKey('LEFT');
-            break;
-          case 'ArrowRight':
-            tapKey('RIGHT');
-            break;
-          case 'Enter':
-            tapKey('A');           // Tap = A
-            break;
-          case 'Escape':
-          case 'Backspace':
-            tapKey('B');           // Double-tap simulation via Escape if supported
-            break;
-          case 'Shift':
-          case ' ':
-            tapKey('START');       // Hold simulation via Shift/Space
-            break;
-        }
-      });
-    }
-
-    // Wait for emulator
-    function waitForEmulator() {
-      if (window.EJS_emulator && EJS_emulator.gameManager) {
-        emulatorReady = true;
-        console.log("✅ Emulator Ready for Meta Glasses");
-        document.getElementById('status').textContent = "Ready - Use Gestures";
-        setupMetaControls();
-      } else {
-        setTimeout(waitForEmulator, 500);
-      }
-    }
-
-    window.addEventListener('load', () => {
-      document.getElementById('status').textContent = "Starting Pokémon...";
-      waitForEmulator();
     });
+
+    // Basic Neural Band / keyboard mapping (glasses translate gestures to arrows)
+    document.addEventListener('keydown', (e) => {
+      switch(e.key) {
+        case 'ArrowUp':    gba.keyPress(0); break; // Up
+        case 'ArrowDown':  gba.keyPress(1); break;
+        case 'ArrowLeft':  gba.keyPress(2); break;
+        case 'ArrowRight': gba.keyPress(3); break;
+        case 'z': case ' ': gba.keyPress(4); break; // A (tap)
+        case 'x': gba.keyPress(5); break;           // B (double tap simulation)
+        case 'Enter': gba.keyPress(6); break;       // Start (hold simulation)
+        case 'Shift': gba.keyPress(7); break;       // Select
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      // Release keys...
+    });
+
+    // For better Neural Band support, the glasses already map gestures to arrow keys.
+    // You can enhance with motion/orientation if needed via the Meta API.
   </script>
 </body>
 </html>
