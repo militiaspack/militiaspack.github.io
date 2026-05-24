@@ -9,7 +9,7 @@
                  maximum-scale=1.0,
                  user-scalable=no">
 
-  <title>Pokemon on Ray-Ban</title>
+  <title>Pokemon on Meta Glasses</title>
 
   <style>
 
@@ -55,6 +55,7 @@
       image-rendering: pixelated;
       background: black;
       touch-action: none;
+      outline: none;
     }
 
   </style>
@@ -70,7 +71,12 @@
       Loading Pokémon...
     </div>
 
-    <div id="game"></div>
+    <!-- focusable so Meta controls can target it -->
+    <div
+      id="game"
+      class="focusable"
+      tabindex="0">
+    </div>
 
   </div>
 
@@ -85,17 +91,12 @@
     EJS_core = "gba";
 
     EJS_pathtodata =
-      "https://cdn.emulatorjs.org/stable/data/";
+      "https://cdn.emulatorjs.org/latest/data/";
 
-    // ROM beside index.html
     EJS_gameUrl = "./pokemon.gba";
-
-    // Optional BIOS
-    // EJS_biosUrl = "./gba_bios.bin";
 
     EJS_startOnLoaded = true;
 
-    // Cleaner UI
     EJS_disableDatabases = true;
     EJS_hideSettings = true;
 
@@ -129,9 +130,22 @@
   </script>
 
   <!-- EmulatorJS -->
-  <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
+  <script src="https://cdn.emulatorjs.org/latest/data/loader.js"></script>
 
   <script>
+
+    // =========================================
+    // META INPUT CONSTANTS
+    // =========================================
+
+    const DPAD = {
+      UP: 'ArrowUp',
+      DOWN: 'ArrowDown',
+      LEFT: 'ArrowLeft',
+      RIGHT: 'ArrowRight',
+      SELECT: 'Enter',
+      BACK: 'Escape',
+    };
 
     // =========================================
     // WAIT FOR EMULATOR
@@ -149,6 +163,9 @@
       console.log("Emulator Ready");
 
       setupControls();
+
+      // Focus game automatically
+      document.getElementById('game').focus();
     }
 
     waitForEmulator();
@@ -183,7 +200,7 @@
     }
 
     // =========================================
-    // UNIVERSAL GESTURE HANDLER
+    // GESTURE HANDLER
     // =========================================
 
     function handleGesture(type, direction = null) {
@@ -192,33 +209,25 @@
 
       switch(type) {
 
-        // ===============================
         // TAP = A
-        // ===============================
 
         case 'tap':
           tapKey('A');
           break;
 
-        // ===============================
         // DOUBLE TAP = B
-        // ===============================
 
         case 'doubletap':
           tapKey('B');
           break;
 
-        // ===============================
         // HOLD = START
-        // ===============================
 
         case 'hold':
           tapKey('START');
           break;
 
-        // ===============================
         // SWIPES = DPAD
-        // ===============================
 
         case 'swipe':
 
@@ -239,7 +248,7 @@
     }
 
     // =========================================
-    // CONTROL SYSTEM
+    // TOUCH CONTROLS
     // =========================================
 
     function setupControls() {
@@ -267,7 +276,6 @@
           touchStartX = touch.clientX;
           touchStartY = touch.clientY;
 
-          // HOLD = START
           holdTimer = setTimeout(() => {
 
             handleGesture('hold');
@@ -305,9 +313,7 @@
 
           const now = Date.now();
 
-          // =================================
           // DOUBLE TAP = B
-          // =================================
 
           if (now - lastTap < 300) {
 
@@ -319,9 +325,7 @@
 
           lastTap = now;
 
-          // =================================
           // TAP = A
-          // =================================
 
           if (absX < 20 && absY < 20) {
 
@@ -329,9 +333,7 @@
             return;
           }
 
-          // =================================
-          // SWIPE HORIZONTAL
-          // =================================
+          // SWIPES
 
           if (absX > absY) {
 
@@ -348,10 +350,6 @@
             return;
           }
 
-          // =================================
-          // SWIPE VERTICAL
-          // =================================
-
           if (deltaY > 0) {
 
             handleGesture('swipe', 'down');
@@ -366,71 +364,85 @@
         { passive: true }
       );
 
-      // =====================================
-      // KEYBOARD TESTING
-      // =====================================
-
-      document.addEventListener(
-        'keydown',
-        (e) => {
-
-          if (e.key === 'ArrowUp')
-            handleGesture('swipe', 'up');
-
-          if (e.key === 'ArrowDown')
-            handleGesture('swipe', 'down');
-
-          if (e.key === 'ArrowLeft')
-            handleGesture('swipe', 'left');
-
-          if (e.key === 'ArrowRight')
-            handleGesture('swipe', 'right');
-
-          if (e.key === 'z')
-            handleGesture('tap');
-
-          if (e.key === 'x')
-            handleGesture('doubletap');
-
-          if (e.key === 'Enter')
-            handleGesture('hold');
-
-        }
-      );
-
-      // =====================================
-      // META GLASSES GESTURE BRIDGE
-      // =====================================
-
-      // External systems can inject gestures:
-      //
-      // window.dispatchEvent(
-      //   new CustomEvent('metaGesture', {
-      //     detail: {
-      //       type: 'swipe',
-      //       direction: 'left'
-      //     }
-      //   })
-      // );
-
-      window.addEventListener(
-        'metaGesture',
-        (e) => {
-
-          const {
-            type,
-            direction
-          } = e.detail;
-
-          handleGesture(type, direction);
-
-        }
-      );
-
-   
-      console.log("Controls Ready");
-
+      console.log("Touch Controls Ready");
     }
+
+    // =========================================
+    // META NEURAL BAND INPUT
+    // =========================================
+
+    document.addEventListener('keydown', function(e) {
+
+      console.log("Meta Input:", e.key);
+
+      switch (e.key) {
+
+        // =================================
+        // SWIPES = DPAD
+        // =================================
+
+        case DPAD.UP:
+          handleGesture('swipe', 'up');
+          break;
+
+        case DPAD.DOWN:
+          handleGesture('swipe', 'down');
+          break;
+
+        case DPAD.LEFT:
+          handleGesture('swipe', 'left');
+          break;
+
+        case DPAD.RIGHT:
+          handleGesture('swipe', 'right');
+          break;
+
+        // =================================
+        // TAP = A
+        // =================================
+
+        case DPAD.SELECT:
+          handleGesture('tap');
+          break;
+
+        // =================================
+        // BACK = B
+        // =================================
+
+        case DPAD.BACK:
+          handleGesture('doubletap');
+          break;
+
+        default:
+          return;
+      }
+
+      e.preventDefault();
+
+    });
+
+    // =========================================
+    // EXTRA KEYBOARD SUPPORT
+    // =========================================
+
+    document.addEventListener(
+      'keydown',
+      (e) => {
+
+        // Z = A
+        if (e.key === 'z')
+          tapKey('A');
+
+        // X = B
+        if (e.key === 'x')
+          tapKey('B');
+
+        // ENTER = START
+        if (e.key === 'Shift')
+          tapKey('START');
+
+      }
+    );
 
   </script>
 
