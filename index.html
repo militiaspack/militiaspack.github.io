@@ -45,7 +45,6 @@
         }
         .small { font-size: 14px; color: #aaa; }
         .header { display: flex; justify-content: space-between; align-items: center; }
-        .status { font-size: 14px; color: #0f0; }
     </style>
 </head>
 <body>
@@ -54,14 +53,9 @@
         <!-- Login / Setup Screen -->
         <div id="login-screen">
             <h1>Trello Glasses</h1>
-            <h2>Credentials</h2>
-            <input type="text" id="api-key" placeholder="API Key" value="67c9029f2d000311400426fca642acaf">
-            <input type="text" id="token" placeholder="Token" value="85abf9a2430d297f0249fe39c9b199b946a6e3add6b3c1fed5718f1ceeda9e41">
-            <button onclick="saveCredentials()">Save & Connect</button>
-            <p class="small">
-                Edit the values in the code if needed<br>
-                <a href="https://trello.com/app-key" target="_blank" style="color:#0f0;">Get new keys here</a>
-            </p>
+            <h2>Ready to Connect</h2>
+            <button onclick="saveCredentials()" style="background:#0f0;color:#000;font-weight:bold;">Connect to Trello</button>
+            <p class="small">Your credentials are already saved in this app</p>
         </div>
 
         <!-- Main App -->
@@ -87,7 +81,9 @@
 
     <script>
         const API_BASE = 'https://api.trello.com/1';
-        let apiKey = '', token = '', currentBoardId = '', currentListId = '';
+        let apiKey = '67c9029f2d000311400426fca642acaf';
+        let token = '85abf9a2430d297f0249fe39c9b199b946a6e3add6b3c1fed5718f1ceeda9e41';
+        let currentBoardId = '', currentListId = '';
 
         function showScreen(id) {
             document.querySelectorAll('div[id$="-screen"]').forEach(s => s.classList.add('hidden'));
@@ -95,26 +91,15 @@
         }
 
         function saveCredentials() {
-            apiKey = document.getElementById('api-key').value.trim();
-            token = document.getElementById('token').value.trim();
-            if (apiKey && token) {
-                localStorage.setItem('trelloKey', apiKey);
-                localStorage.setItem('trelloToken', token);
-                loadBoards();
-            } else {
-                alert('Missing API Key or Token');
-            }
-        }
-
-        function loadCredentials() {
-            apiKey = localStorage.getItem('trelloKey') || document.getElementById('api-key').value.trim();
-            token = localStorage.getItem('trelloToken') || document.getElementById('token').value.trim();
+            localStorage.setItem('trelloKey', apiKey);
+            localStorage.setItem('trelloToken', token);
+            loadBoards();
         }
 
         async function fetchTrello(endpoint) {
             const url = `${API_BASE}${endpoint}?key=${apiKey}&token=${token}`;
             const res = await fetch(url);
-            if (!res.ok) throw new Error('API Error - check credentials');
+            if (!res.ok) throw new Error('API Error');
             return res.json();
         }
 
@@ -129,7 +114,7 @@
                 `).join('');
                 document.getElementById('boards-list').innerHTML = html || '<p>No boards found</p>';
             } catch (e) {
-                alert('Failed to load: ' + e.message);
+                alert('Failed to load boards: ' + e.message);
             }
         }
 
@@ -157,12 +142,12 @@
 
         async function addCard() {
             const name = document.getElementById('new-card-name').value.trim();
-            if (!name || !currentListId) return alert('Enter card name');
+            if (!name || !currentListId) return alert('Enter a card name');
             try {
                 await fetch(`${API_BASE}/cards?key=${apiKey}&token=${token}&name=${encodeURIComponent(name)}&idList=${currentListId}`, { method: 'POST' });
                 document.getElementById('new-card-name').value = '';
                 loadCards(currentListId);
-            } catch (e) { alert('Failed to add: ' + e.message); }
+            } catch (e) { alert('Failed to add card: ' + e.message); }
         }
 
         function backToBoards() {
@@ -170,21 +155,15 @@
         }
 
         function logout() {
-            if (confirm('Logout?')) {
-                localStorage.removeItem('trelloKey');
-                localStorage.removeItem('trelloToken');
+            if (confirm('Logout and clear credentials?')) {
+                localStorage.clear();
                 showScreen('login-screen');
             }
         }
 
-        // Initialize
+        // Start the app
         window.onload = () => {
-            loadCredentials();
-            if (apiKey && token) {
-                loadBoards();
-            } else {
-                showScreen('login-screen');
-            }
+            saveCredentials();   // Auto connect using the pre-filled keys
         };
     </script>
 </body>
