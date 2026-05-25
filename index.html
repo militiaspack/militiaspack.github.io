@@ -5,101 +5,73 @@
     <meta name="viewport" content="width=600, initial-scale=1.0">
     <title>Trello on Ray-Ban</title>
     <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            background: #000;
-            color: #0f0;
-            font-family: system-ui, sans-serif;
-            width: 600px;
-            height: 600px;
-            overflow: hidden;
-            text-align: center;
+        body {margin:0;padding:20px;background:#000;color:#0f0;font-family:system-ui,sans-serif;width:600px;height:600px;overflow:hidden;text-align:center;}
+        h1,h2 {color:#0f0;}
+        input,button {
+            background:#111;color:#0f0;border:2px solid #0f0;
+            padding:16px;margin:10px 0;width:92%;font-size:19px;
         }
-        .container { max-width: 560px; margin: 0 auto; }
-        h1, h2, h3 { color: #0f0; margin: 10px 0; }
-        
-        button, input {
-            background: #111;
-            color: #0f0;
-            border: 2px solid #0f0;
-            padding: 14px;
-            margin: 8px 0;
-            width: 90%;
-            font-size: 18px;
-            text-align: center;
-            border-radius: 4px;
-        }
-        button:focus, input:focus {
-            background: #0f0;
-            color: #000;
-            outline: 3px solid #fff;
-        }
-        .hidden { display: none !important; }
-        .card { 
-            background: #111; 
-            padding: 12px; 
-            margin: 8px 0; 
-            border: 1px solid #0f0; 
-            text-align: left; 
-        }
-        .small { font-size: 14px; color: #aaa; }
-        .header { display: flex; justify-content: space-between; align-items: center; }
+        button:focus,input:focus {background:#0f0;color:#000;}
+        .hidden {display:none !important;}
+        .card {background:#111;padding:12px;margin:8px 0;border:1px solid #0f0;text-align:left;}
+        .info {font-size:15px;color:#aaa;line-height:1.4;}
     </style>
 </head>
 <body>
-    <div class="container">
+    <div id="setup-screen">
+        <h1>Trello on Ray-Ban</h1>
+        <h2>Connect Your Account</h2>
+        <input type="text" id="api-key" placeholder="API Key">
+        <input type="text" id="token" placeholder="Token">
+        <button onclick="connect()">Connect to Trello</button>
+        <p class="info">
+            <a href="https://trello.com/app-key" target="_blank" style="color:#0f0;">Get API Key + Token</a><br>
+            Set token to Never expire
+        </p>
+    </div>
 
-        <!-- Login / Setup Screen -->
-        <div id="login-screen">
-            <h1>Trello Glasses</h1>
-            <h2>Ready to Connect</h2>
-            <button onclick="saveCredentials()" style="background:#0f0;color:#000;font-weight:bold;">Connect to Trello</button>
-            <p class="small">Your credentials are already saved in this app</p>
+    <div id="main-screen" class="hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h2 id="board-name">Boards</h2>
+            <button onclick="logout()" style="width:auto;padding:8px 12px;">Logout</button>
         </div>
+        <div id="boards-list"></div>
 
-        <!-- Main App -->
-        <div id="main-screen" class="hidden">
-            <div class="header">
-                <h2 id="board-name">My Boards</h2>
-                <button onclick="logout()" class="small" style="width:auto;padding:8px 12px;">Logout</button>
-            </div>
-            
-            <div id="boards-list"></div>
-
-            <!-- Cards View -->
-            <div id="cards-view" class="hidden">
-                <button onclick="backToBoards()" style="width:auto;">← Back</button>
-                <h3 id="list-name"></h3>
-                <div id="cards-list"></div>
-                
-                <input type="text" id="new-card-name" placeholder="New card name">
-                <button onclick="addCard()">+ Add Card</button>
-            </div>
+        <div id="cards-view" class="hidden">
+            <button onclick="backToBoards()" style="width:auto;margin-bottom:10px;">← Back</button>
+            <h3 id="list-name"></h3>
+            <div id="cards-list"></div>
+            <input type="text" id="new-card-name" placeholder="New card name">
+            <button onclick="addCard()">+ Add Card</button>
         </div>
     </div>
 
     <script>
         const API_BASE = 'https://api.trello.com/1';
-        let apiKey = '67c9029f2d000311400426fca642acaf';
-        let token = 'ATTA76107e73928c842ea1b1a8bc488a494b46a0b9f137808d7f8a7c29235dace5e7A60F0AE8';
-        let currentBoardId = '', currentListId = '';
+        let apiKey = '', token = '', currentBoardId = '', currentListId = '';
+
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return { key: params.get('key'), token: params.get('token') };
+        }
 
         function showScreen(id) {
             document.querySelectorAll('div[id$="-screen"]').forEach(s => s.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
         }
 
-        function saveCredentials() {
+        function connect() {
+            apiKey = document.getElementById('api-key').value.trim();
+            token = document.getElementById('token').value.trim();
+            if (!apiKey || !token) return alert("Enter both fields");
             localStorage.setItem('trelloKey', apiKey);
             localStorage.setItem('trelloToken', token);
             loadBoards();
         }
 
         async function fetchTrello(endpoint) {
-            const url = `${API_BASE}${endpoint}?key=${apiKey}&token=${token}`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error('API Error');
+            const res = await fetch(`${API_BASE}${endpoint}?key=${apiKey}&token=${token}`);
+            if (!res.ok) throw new Error(`Error ${res.status}`);
             return res.json();
         }
 
@@ -107,63 +79,57 @@
             showScreen('main-screen');
             try {
                 const boards = await fetchTrello('/members/me/boards');
-                const html = boards.map(b => `
-                    <button onclick="selectBoard('${b.id}', '${b.name.replace(/'/g, "\\'")}')" style="width:90%;">
-                        ${b.name}
-                    </button>
-                `).join('');
-                document.getElementById('boards-list').innerHTML = html || '<p>No boards found</p>';
-            } catch (e) {
-                alert('Failed to load boards: ' + e.message);
-            }
+                const html = boards.map(b => `<button onclick="selectBoard('${b.id}','${b.name.replace(/'/g,"\\'")}')" style="width:92%;">${b.name}</button>`).join('');
+                document.getElementById('boards-list').innerHTML = html || '<p>No boards</p>';
+            } catch (e) { alert('Failed: ' + e.message); }
         }
 
-        async function selectBoard(boardId, boardName) {
-            currentBoardId = boardId;
-            document.getElementById('board-name').textContent = boardName;
-            try {
-                const lists = await fetchTrello(`/boards/${boardId}/lists`);
-                if (lists.length > 0) {
-                    currentListId = lists[0].id;
-                    document.getElementById('list-name').textContent = lists[0].name;
-                    loadCards(lists[0].id);
-                }
-            } catch (e) { alert(e.message); }
+        async function selectBoard(id, name) {
+            currentBoardId = id;
+            document.getElementById('board-name').textContent = name;
+            const lists = await fetchTrello(`/boards/${id}/lists`);
+            if (lists.length > 0) {
+                currentListId = lists[0].id;
+                document.getElementById('list-name').textContent = lists[0].name;
+                loadCards(lists[0].id);
+            }
         }
 
         async function loadCards(listId) {
             document.getElementById('cards-view').classList.remove('hidden');
-            try {
-                const cards = await fetchTrello(`/lists/${listId}/cards`);
-                const html = cards.map(c => `<div class="card">${c.name}</div>`).join('');
-                document.getElementById('cards-list').innerHTML = html || '<p>No cards yet</p>';
-            } catch (e) { alert(e.message); }
+            const cards = await fetchTrello(`/lists/${listId}/cards`);
+            const html = cards.map(c => `<div class="card">${c.name}</div>`).join('');
+            document.getElementById('cards-list').innerHTML = html || '<p>No cards</p>';
         }
 
         async function addCard() {
             const name = document.getElementById('new-card-name').value.trim();
-            if (!name || !currentListId) return alert('Enter a card name');
-            try {
-                await fetch(`${API_BASE}/cards?key=${apiKey}&token=${token}&name=${encodeURIComponent(name)}&idList=${currentListId}`, { method: 'POST' });
-                document.getElementById('new-card-name').value = '';
-                loadCards(currentListId);
-            } catch (e) { alert('Failed to add card: ' + e.message); }
+            if (!name) return;
+            await fetch(`${API_BASE}/cards?key=${apiKey}&token=${token}&name=${encodeURIComponent(name)}&idList=${currentListId}`, {method:'POST'});
+            document.getElementById('new-card-name').value = '';
+            loadCards(currentListId);
         }
 
-        function backToBoards() {
-            document.getElementById('cards-view').classList.add('hidden');
-        }
+        function backToBoards() { document.getElementById('cards-view').classList.add('hidden'); }
 
         function logout() {
-            if (confirm('Logout and clear credentials?')) {
-                localStorage.clear();
-                showScreen('login-screen');
-            }
+            if (confirm('Logout?')) location.reload();
         }
 
-        // Start the app
         window.onload = () => {
-            saveCredentials();   // Auto connect using the pre-filled keys
+            const p = getUrlParams();
+            const savedKey = localStorage.getItem('trelloKey');
+            const savedToken = localStorage.getItem('trelloToken');
+
+            if (p.key && p.token) {
+                apiKey = p.key; token = p.token;
+                loadBoards();
+            } else if (savedKey && savedToken) {
+                apiKey = savedKey; token = savedToken;
+                loadBoards();
+            } else {
+                showScreen('setup-screen');
+            }
         };
     </script>
 </body>
