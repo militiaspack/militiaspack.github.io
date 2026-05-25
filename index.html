@@ -1,858 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=600, height=600, initial-scale=1.0, user-scalable=no">
-<title>Trello · MRBD</title>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
-/* ─────────────────────────────────────
-   IMPORTANT: Replace YOUR_TRELLO_API_KEY
-   on line ~340 with your actual key from
-   https://trello.com/app-key
-   ───────────────────────────────────── */
-
-:root{
-  --cyan:#00d4ff;
-  --green:#7ee8a2;
-  --amber:#f7c843;
-  --red:#ff5c5c;
-  --purple:#c084fc;
-  --white:#ffffff;
-  --dim:#8899b0;
-  --darker:#334155;
-  --focus-glow:0 0 20px rgba(0,212,255,0.5);
-}
-
-/* MRBD: black = fully transparent on additive waveguide display */
-body{
-  width:600px;height:600px;
-  overflow:hidden;
-  background:#000;
-  color:var(--white);
-  font-family:'DM Sans',system-ui,sans-serif;
-  font-size:16px;
-}
-
-/* ── Screens ── */
-.screen{
-  width:600px;height:600px;
-  position:absolute;top:0;left:0;
-  display:none;flex-direction:column;
-}
-.screen.active{display:flex;}
-
-/* ── Top bar ── */
-.topbar{
-  display:flex;align-items:center;
-  padding:12px 20px 10px;gap:10px;
-  border-bottom:1px solid rgba(0,212,255,0.15);
-  flex-shrink:0;
-}
-.topbar-logo{
-  font-family:'Space Mono',monospace;
-  font-size:11px;letter-spacing:.15em;
-  color:var(--cyan);opacity:.7;
-}
-.topbar-title{
-  font-family:'Space Mono',monospace;
-  font-size:13px;color:var(--white);
-  flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-.topbar-hint{
-  font-family:'Space Mono',monospace;
-  font-size:9px;color:rgba(0,212,255,.4);letter-spacing:.08em;
-}
-.dot{
-  width:6px;height:6px;border-radius:50%;
-  background:var(--green);animation:blink 2s infinite;flex-shrink:0;
-}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
-
-/* ── Nav hint ── */
-.nav-hint{
-  padding:6px 20px;
-  font-family:'Space Mono',monospace;font-size:9px;
-  color:rgba(0,212,255,.3);letter-spacing:.08em;
-  display:flex;gap:16px;flex-shrink:0;
-  border-top:1px solid rgba(0,212,255,.08);
-}
-
-/* ── Focus / Focusable ── */
-/* Per MRBD docs: min-height 88px, border highlight, glow on focus */
-.focusable{
-  transition:all 150ms ease;
-  border:2px solid transparent;
-  min-height:88px;
-}
-.focusable:focus{
-  outline:none;
-  border-color:var(--cyan);
-  box-shadow:var(--focus-glow);
-}
-
-/* ─────────────────────────────────────
-   LOGIN SCREEN
-   Uses Trello OAuth — no text input.
-   User navigates to auth URL on phone,
-   approves, token stored in localStorage.
-   ───────────────────────────────────── */
-#screen-login{
-  align-items:center;justify-content:center;
-  padding:40px;gap:18px;text-align:center;
-}
-.login-icon{font-size:52px;margin-bottom:4px;}
-.login-title{
-  font-family:'Space Mono',monospace;
-  font-size:22px;color:var(--cyan);letter-spacing:.08em;
-}
-.login-sub{font-size:14px;color:var(--dim);line-height:1.7;max-width:460px;}
-.login-url-box{
-  background:rgba(0,212,255,.08);
-  border:1px solid rgba(0,212,255,.25);
-  border-radius:10px;padding:12px 16px;
-  font-family:'Space Mono',monospace;font-size:11px;
-  color:var(--cyan);width:100%;word-break:break-all;line-height:1.6;
-}
-.login-btn{
-  display:flex;align-items:center;justify-content:center;gap:10px;
-  padding:16px 24px;border-radius:12px;
-  border:2px solid transparent;
-  background:rgba(0,212,255,.1);
-  color:var(--cyan);font-size:16px;
-  cursor:pointer;width:100%;
-  font-family:'Space Mono',monospace;
-  transition:all .15s;
-  min-height:88px; /* MRBD tap target */
-}
-.login-btn:focus{
-  outline:none;border-color:var(--cyan);
-  box-shadow:var(--focus-glow);
-}
-.login-btn:hover{background:rgba(0,212,255,.18);}
-
-/* ── Boards screen ── */
-#screen-boards{padding:0;}
-.board-grid{
-  display:grid;grid-template-columns:1fr 1fr;
-  gap:10px;padding:12px 20px 20px;
-  overflow:hidden;flex:1;
-}
-.board-item{
-  border-radius:12px;border:2px solid transparent;
-  padding:20px 14px;cursor:pointer;
-  display:flex;flex-direction:column;gap:8px;
-  transition:border-color .15s;
-  background:rgba(255,255,255,.04);
-  min-height:88px; /* MRBD tap target */
-}
-.board-item:focus{
-  outline:none;border-color:var(--cyan);
-  box-shadow:var(--focus-glow);
-}
-.board-dot{width:10px;height:10px;border-radius:50%;}
-.board-name{font-size:16px;font-weight:500;color:var(--white);line-height:1.3;}
-.board-meta{font-family:'Space Mono',monospace;font-size:10px;color:var(--dim);}
-
-/* ── Lists screen ── */
-.lists-scroll{
-  display:flex;flex-direction:column;gap:6px;
-  padding:10px 20px 20px;flex:1;overflow:hidden;
-}
-.list-item{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 16px;border-radius:10px;
-  border:2px solid transparent;
-  background:rgba(255,255,255,.04);
-  cursor:pointer;transition:all .15s;min-height:88px;
-}
-.list-item:focus{outline:none;border-color:var(--cyan);box-shadow:var(--focus-glow);}
-.list-name{font-size:18px;font-weight:500;color:var(--white);}
-.list-count{font-family:'Space Mono',monospace;font-size:20px;color:var(--cyan);}
-
-/* ── Cards screen ── */
-.cards-list{
-  display:flex;flex-direction:column;gap:6px;
-  padding:10px 20px 10px;flex:1;overflow:hidden;
-}
-.card-item{
-  padding:12px 16px;border-radius:10px;
-  border:2px solid transparent;
-  background:rgba(255,255,255,.05);
-  cursor:pointer;transition:all .15s;
-  min-height:72px; /* cards can be shorter since they stack */
-  display:flex;flex-direction:column;justify-content:center;gap:5px;
-}
-.card-item:focus{outline:none;border-color:var(--cyan);box-shadow:var(--focus-glow);}
-.card-name{
-  font-size:16px;color:var(--white);line-height:1.35;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
-}
-.card-labels{display:flex;gap:5px;flex-wrap:wrap;}
-.label-chip{
-  font-size:10px;font-family:'Space Mono',monospace;
-  padding:2px 7px;border-radius:4px;font-weight:700;
-}
-
-/* ── Card detail screen ── */
-.detail-body{
-  padding:14px 20px;flex:1;
-  display:flex;flex-direction:column;gap:10px;overflow:hidden;
-}
-.detail-card-name{font-size:20px;font-weight:500;color:var(--white);line-height:1.4;}
-.detail-desc{
-  font-size:14px;color:var(--dim);line-height:1.6;flex:1;overflow:hidden;
-  display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;
-}
-.detail-section-label{
-  font-family:'Space Mono',monospace;font-size:10px;
-  letter-spacing:.1em;color:rgba(0,212,255,.5);
-  text-transform:uppercase;margin-top:4px;
-}
-.detail-labels{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
-.detail-actions{
-  display:flex;flex-direction:column;gap:6px;
-  padding:0 20px 14px;flex-shrink:0;
-}
-.action-btn{
-  display:flex;align-items:center;gap:12px;
-  padding:14px 16px;border-radius:10px;
-  border:2px solid transparent;
-  background:rgba(255,255,255,.05);
-  color:var(--white);font-size:16px;cursor:pointer;
-  min-height:52px;transition:all .15s;
-  font-family:inherit;
-}
-.action-btn:focus{outline:none;border-color:var(--cyan);box-shadow:var(--focus-glow);}
-.action-btn.danger:focus{border-color:var(--red);box-shadow:0 0 20px rgba(255,92,92,.4);}
-.action-icon{font-size:18px;}
-
-/* ── Move screen ── */
-.move-list{
-  display:flex;flex-direction:column;gap:6px;
-  padding:10px 20px 20px;flex:1;overflow:hidden;
-}
-.move-item{
-  display:flex;align-items:center;gap:12px;
-  padding:14px 16px;border-radius:10px;
-  border:2px solid transparent;
-  background:rgba(255,255,255,.04);
-  cursor:pointer;transition:all .15s;
-  min-height:64px;font-size:16px;
-}
-.move-item:focus{outline:none;border-color:var(--cyan);box-shadow:var(--focus-glow);}
-.move-item.current{border-color:rgba(0,212,255,.3);color:var(--dim);}
-.move-check{color:var(--cyan);font-size:14px;}
-
-/* ── Loading overlay ── */
-#loading{
-  position:absolute;top:0;left:0;
-  width:600px;height:600px;
-  background:rgba(0,0,0,.75);
-  display:none;align-items:center;justify-content:center;
-  flex-direction:column;gap:14px;z-index:200;
-}
-#loading.show{display:flex;}
-.spinner{
-  width:36px;height:36px;
-  border:3px solid rgba(0,212,255,.2);
-  border-top-color:var(--cyan);border-radius:50%;
-  animation:spin .7s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-text{
-  font-family:'Space Mono',monospace;font-size:12px;
-  color:var(--cyan);letter-spacing:.1em;
-}
-
-/* ── Toast ── */
-.toast{
-  position:absolute;bottom:20px;left:50%;
-  transform:translateX(-50%);
-  background:rgba(0,212,255,.15);
-  border:1px solid rgba(0,212,255,.4);
-  border-radius:8px;padding:10px 20px;
-  font-family:'Space Mono',monospace;font-size:12px;
-  color:var(--cyan);pointer-events:none;
-  opacity:0;transition:opacity .3s;
-  white-space:nowrap;z-index:100;
-}
-.toast.show{opacity:1;}
-.toast.error{background:rgba(255,92,92,.15);border-color:rgba(255,92,92,.4);color:var(--red);}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=600, initial-scale=1.0">
+    <title>Trello on Ray-Ban</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            color: #0f0;
+            font-family: system-ui, sans-serif;
+            width: 600px;
+            height: 600px;
+            overflow: hidden;
+            text-align: center;
+        }
+        .container { max-width: 560px; margin: 0 auto; }
+        h1, h2, h3 { color: #0f0; margin: 10px 0; }
+        
+        button, input {
+            background: #111;
+            color: #0f0;
+            border: 2px solid #0f0;
+            padding: 14px;
+            margin: 8px 0;
+            width: 90%;
+            font-size: 18px;
+            text-align: center;
+            border-radius: 4px;
+        }
+        button:focus, input:focus {
+            background: #0f0;
+            color: #000;
+            outline: 3px solid #fff;
+        }
+        .hidden { display: none !important; }
+        .card { 
+            background: #111; 
+            padding: 12px; 
+            margin: 8px 0; 
+            border: 1px solid #0f0; 
+            text-align: left; 
+        }
+        .small { font-size: 14px; color: #aaa; }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+    </style>
 </head>
 <body>
+    <div class="container">
 
-<!-- ══════════════════════════════════
-     LOGIN SCREEN
-     Trello OAuth — no text input needed.
-     Shows a button the user focuses with
-     Neural Band and presses Enter to open
-     the Trello auth page on their phone.
-     ══════════════════════════════════ -->
-<div id="screen-login" class="screen active">
-  <div class="login-icon">🕶️</div>
-  <div class="login-title">TRELLO HUD</div>
-  <p class="login-sub">
-    Press <strong style="color:var(--cyan)">Enter / select</strong> to authorize
-    with Trello. The auth page will open in your phone's browser — approve it
-    and you'll be logged in automatically.
-  </p>
-  <div id="login-url-display" class="login-url-box" style="display:none"></div>
-  <button class="login-btn focusable" tabindex="0" id="btn-authorize" onclick="startOAuth()">
-    🔐 &nbsp;Authorize with Trello
-  </button>
-  <p style="font-size:12px;color:var(--dim)">
-    Already authorized?
-    <span style="color:var(--cyan);cursor:pointer" onclick="checkStoredToken()">Load saved token</span>
-  </p>
-</div>
+        <!-- Login / Setup Screen -->
+        <div id="login-screen">
+            <h1>Trello Glasses</h1>
+            <h2>Enter Trello Credentials</h2>
+            <input type="text" id="api-key" placeholder="API Key">
+            <input type="text" id="token" placeholder="Token">
+            <button onclick="saveCredentials()">Save & Connect</button>
+            <p class="small">
+                Get them here: <a href="https://trello.com/app-key" target="_blank" style="color:#0f0;">trello.com/app-key</a><br>
+                Choose "never expire"
+            </p>
+            <button onclick="clearCredentials()" class="small">Clear Saved Data</button>
+        </div>
 
-<!-- ══════════════════════════════════
-     BOARDS SCREEN
-     ══════════════════════════════════ -->
-<div id="screen-boards" class="screen">
-  <div class="topbar">
-    <div class="dot"></div>
-    <div class="topbar-logo">TRELLO HUD</div>
-    <div class="topbar-title">Select Board</div>
-    <div class="topbar-hint">↕ NAV · ↵ SELECT</div>
-  </div>
-  <div class="board-grid" id="board-grid"></div>
-  <div class="nav-hint">
-    <span>↑↓←→ navigate</span><span>↵ select</span>
-  </div>
-</div>
+        <!-- Main App -->
+        <div id="main-screen" class="hidden">
+            <div class="header">
+                <h2 id="board-name">My Boards</h2>
+                <button onclick="logout()" class="small" style="width:auto;padding:8px 12px;">Logout</button>
+            </div>
+            
+            <div id="boards-list"></div>
 
-<!-- ══════════════════════════════════
-     LISTS SCREEN
-     ══════════════════════════════════ -->
-<div id="screen-lists" class="screen">
-  <div class="topbar">
-    <div class="dot"></div>
-    <div class="topbar-logo">TRELLO HUD</div>
-    <div class="topbar-title" id="lists-board-title"></div>
-    <div class="topbar-hint">↵ OPEN</div>
-  </div>
-  <div class="lists-scroll" id="lists-scroll"></div>
-  <div class="nav-hint">
-    <span>↑↓ navigate</span><span>↵ open list</span><span>← back</span>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════
-     CARDS SCREEN
-     ══════════════════════════════════ -->
-<div id="screen-cards" class="screen">
-  <div class="topbar">
-    <div class="dot"></div>
-    <div class="topbar-logo">TRELLO HUD</div>
-    <div class="topbar-title" id="cards-list-title"></div>
-    <div class="topbar-hint">↵ VIEW</div>
-  </div>
-  <div class="cards-list" id="cards-list"></div>
-  <div class="nav-hint">
-    <span>↑↓ navigate</span><span>↵ open card</span><span>← back</span>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════
-     CARD DETAIL SCREEN
-     ══════════════════════════════════ -->
-<div id="screen-detail" class="screen">
-  <div class="topbar">
-    <div class="dot"></div>
-    <div class="topbar-logo">TRELLO HUD</div>
-    <div class="topbar-title" id="detail-list-name"></div>
-    <div class="topbar-hint">↵ ACTION</div>
-  </div>
-  <div class="detail-body">
-    <div class="detail-card-name" id="detail-card-name"></div>
-    <div class="detail-labels" id="detail-labels"></div>
-    <div class="detail-section-label" id="detail-desc-label" style="display:none">Description</div>
-    <div class="detail-desc" id="detail-desc"></div>
-  </div>
-  <div class="detail-actions">
-    <div class="action-btn focusable" tabindex="0" data-action="archive">
-      <span class="action-icon">📦</span> Archive card
+            <!-- Cards View -->
+            <div id="cards-view" class="hidden">
+                <button onclick="backToBoards()" style="width:auto;">← Back</button>
+                <h3 id="list-name"></h3>
+                <div id="cards-list"></div>
+                
+                <input type="text" id="new-card-name" placeholder="New card name">
+                <button onclick="addCard()">+ Add Card</button>
+            </div>
+        </div>
     </div>
-    <div class="action-btn focusable" tabindex="0" data-action="move">
-      <span class="action-icon">↗️</span> Move to list…
-    </div>
-    <div class="action-btn focusable" tabindex="0" data-action="back">
-      <span class="action-icon">←</span> Back to list
-    </div>
-  </div>
-  <div class="nav-hint">
-    <span>↑↓ navigate</span><span>↵ select action</span><span>← back</span>
-  </div>
-</div>
 
-<!-- ══════════════════════════════════
-     MOVE SCREEN
-     ══════════════════════════════════ -->
-<div id="screen-move" class="screen">
-  <div class="topbar">
-    <div class="dot"></div>
-    <div class="topbar-logo">TRELLO HUD</div>
-    <div class="topbar-title">Move to…</div>
-    <div class="topbar-hint">↵ CONFIRM</div>
-  </div>
-  <div class="move-list" id="move-list"></div>
-  <div class="nav-hint">
-    <span>↑↓ navigate</span><span>↵ move here</span><span>← cancel</span>
-  </div>
-</div>
+    <script>
+        const API_BASE = 'https://api.trello.com/1';
+        let apiKey = '', token = '', currentBoardId = '', currentListId = '';
 
-<!-- ══════════════════════════════════
-     LOADING OVERLAY
-     ══════════════════════════════════ -->
-<div id="loading">
-  <div class="spinner"></div>
-  <div class="loading-text">Loading…</div>
-</div>
+        function showScreen(id) {
+            document.querySelectorAll('div[id$="-screen"]').forEach(s => s.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
 
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
+        function saveCredentials() {
+            apiKey = document.getElementById('api-key').value.trim();
+            token = document.getElementById('token').value.trim();
+            if (apiKey && token) {
+                localStorage.setItem('trelloKey', apiKey);
+                localStorage.setItem('trelloToken', token);
+                loadBoards();
+            } else {
+                alert('Please enter both API Key and Token');
+            }
+        }
 
+        function loadCredentials() {
+            apiKey = localStorage.getItem('trelloKey');
+            token = localStorage.getItem('trelloToken');
+        }
 
-<script>
-// ════════════════════════════════════════
-//  !! REPLACE THIS WITH YOUR API KEY !!
-//  Get it at: https://trello.com/app-key
-// ════════════════════════════════════════
-const TRELLO_API_KEY = '67c9029f2d000311400426fca642acaf';
+        async function fetchTrello(endpoint) {
+            const url = `${API_BASE}${endpoint}?key=${apiKey}&token=${token}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Trello API Error - check your key/token');
+            return res.json();
+        }
 
-// OAuth return URL — must match exactly what you set in the Trello app settings.
-// For local dev, use: http://localhost:PORT/trello-mrbd.html
-// For hosted, use your HTTPS URL e.g. https://yourapp.vercel.app/trello-mrbd.html
-const RETURN_URL = window.location.href.split('?')[0].split('#')[0];
+        async function loadBoards() {
+            showScreen('main-screen');
+            try {
+                const boards = await fetchTrello('/members/me/boards');
+                const html = boards.map(b => `
+                    <button onclick="selectBoard('${b.id}', '${b.name.replace(/'/g, "\\'")}')" style="width:90%;">
+                        ${b.name}
+                    </button>
+                `).join('');
+                document.getElementById('boards-list').innerHTML = html || '<p>No boards found</p>';
+            } catch (e) {
+                alert('Failed to load boards: ' + e.message);
+            }
+        }
 
-// ─────────────────────────────────────
-const DPAD = {
-  UP:'ArrowUp', DOWN:'ArrowDown',
-  LEFT:'ArrowLeft', RIGHT:'ArrowRight',
-  SELECT:'Enter', BACK:'Escape',
-};
+        async function selectBoard(boardId, boardName) {
+            currentBoardId = boardId;
+            document.getElementById('board-name').textContent = boardName;
+            try {
+                const lists = await fetchTrello(`/boards/${boardId}/lists`);
+                if (lists.length > 0) {
+                    currentListId = lists[0].id;
+                    document.getElementById('list-name').textContent = lists[0].name + " (first list)";
+                    loadCards(lists[0].id);
+                }
+            } catch (e) { alert(e.message); }
+        }
 
-const LABEL_COLORS = {
-  green:'#7ee8a2', yellow:'#f7c843', orange:'#f4a03b',
-  red:'#ff5c5c',   purple:'#c084fc', blue:'#3fb0ff',
-  sky:'#67c9f8',   lime:'#aadd55',   pink:'#f987cb',
-  black:'#aaa',    none:'rgba(255,255,255,0.3)',
-};
+        async function loadCards(listId) {
+            document.getElementById('cards-view').classList.remove('hidden');
+            try {
+                const cards = await fetchTrello(`/lists/${listId}/cards`);
+                const html = cards.map(c => `<div class="card">${c.name}</div>`).join('');
+                document.getElementById('cards-list').innerHTML = html || '<p>No cards yet</p>';
+            } catch (e) { alert(e.message); }
+        }
 
-const S = {
-  token: localStorage.getItem('trello_token') || '',
-  boards: [],
-  selectedBoard: null,
-  lists: [],
-  cards: {},
-  selectedList: null,
-  selectedCard: null,
-  currentScreen: 'login',
-};
+        async function addCard() {
+            const name = document.getElementById('new-card-name').value.trim();
+            if (!name || !currentListId) return alert('Enter a name');
+            try {
+                await fetch(`${API_BASE}/cards?key=${apiKey}&token=${token}&name=${encodeURIComponent(name)}&idList=${currentListId}`, { method: 'POST' });
+                document.getElementById('new-card-name').value = '';
+                loadCards(currentListId);
+            } catch (e) { alert('Failed: ' + e.message); }
+        }
 
-// ════════════════════════════════════════
-//  TRELLO OAUTH — no text input required
-//
-//  Flow:
-//  1. App opens Trello authorize URL in phone browser (window.open)
-//  2. User taps Approve on phone
-//  3. Trello redirects back to RETURN_URL with #token=xxx in the hash
-//  4. On page load, we check for that hash and store the token
-// ════════════════════════════════════════
+        function backToBoards() {
+            document.getElementById('cards-view').classList.add('hidden');
+        }
 
-function startOAuth() {
-  // Build the Trello OAuth URL
-  const authUrl =
-    'https://trello.com/1/authorize' +
-    '?expiration=never' +
-    '&name=TrelloHUD' +
-    '&scope=read,write' +
-    '&response_type=token' +
-    '&key=' + TRELLO_API_KEY +
-    '&return_url=' + encodeURIComponent(RETURN_URL) +
-    '&callback_method=fragment';
+        function logout() {
+            if (confirm('Logout?')) {
+                localStorage.removeItem('trelloKey');
+                localStorage.removeItem('trelloToken');
+                showScreen('login-screen');
+            }
+        }
 
-  // Show the URL so the user can see where they're going
-  const urlBox = document.getElementById('login-url-display');
-  urlBox.textContent = authUrl;
-  urlBox.style.display = 'block';
+        function clearCredentials() {
+            if (confirm('Clear all saved data?')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
 
-  // Open in phone browser via window.open
-  // On the glasses, this opens on the paired phone
-  window.open(authUrl, '_blank');
-
-  toast('Approve on your phone, then return here');
-
-  // Poll for the token appearing (covers the case where the glasses
-  // reopen this page with the hash fragment after redirect)
-  startTokenPoll();
-}
-
-function startTokenPoll() {
-  const interval = setInterval(() => {
-    const hash = window.location.hash;
-    if (hash && hash.includes('token=')) {
-      const token = hash.split('token=')[1].split('&')[0];
-      if (token) {
-        clearInterval(interval);
-        storeAndLogin(token);
-      }
-    }
-    // Also check localStorage in case another tab/window wrote it
-    const stored = localStorage.getItem('trello_token');
-    if (stored && stored !== S.token) {
-      clearInterval(interval);
-      storeAndLogin(stored);
-    }
-  }, 1000);
-}
-
-function checkStoredToken() {
-  const t = localStorage.getItem('trello_token');
-  if (t) {
-    storeAndLogin(t);
-  } else {
-    toast('No saved token found', true);
-  }
-}
-
-function storeAndLogin(token) {
-  S.token = token;
-  localStorage.setItem('trello_token', token);
-  // Clear token from URL bar for security
-  if (window.location.hash.includes('token=')) {
-    history.replaceState(null, '', window.location.pathname);
-  }
-  loadBoards();
-}
-
-function logout() {
-  localStorage.removeItem('trello_token');
-  S.token = '';
-  showScreen('login');
-}
-
-// ════════════════════════════════════════
-//  TRELLO API
-// ════════════════════════════════════════
-
-function trello(path, opts = {}) {
-  const sep = path.includes('?') ? '&' : '?';
-  return fetch(
-    'https://api.trello.com/1' + path + sep + 'key=' + TRELLO_API_KEY + '&token=' + S.token,
-    { headers: { 'Content-Type': 'application/json' }, ...opts }
-  ).then(r => {
-    if (!r.ok) throw new Error('Trello ' + r.status);
-    return r.json();
-  });
-}
-
-// ════════════════════════════════════════
-//  DATA LOADING
-// ════════════════════════════════════════
-
-async function loadBoards() {
-  setLoading(true, 'Loading boards…');
-  try {
-    const boards = await trello('/members/me/boards?filter=open&fields=name,prefs,shortUrl');
-    S.boards = boards;
-    renderBoards();
-    showScreen('boards');
-  } catch (e) {
-    toast('Auth failed — please re-authorize', true);
-    logout();
-  }
-  setLoading(false);
-}
-
-async function selectBoard(id) {
-  const board = S.boards.find(b => b.id === id);
-  if (!board) return;
-  S.selectedBoard = board;
-  setLoading(true, 'Loading lists…');
-  try {
-    const [lists, cards] = await Promise.all([
-      trello('/boards/' + id + '/lists?filter=open'),
-      trello('/boards/' + id + '/cards?fields=name,desc,labels,idList,due'),
-    ]);
-    S.lists = lists;
-    S.cards = {};
-    lists.forEach(l => (S.cards[l.id] = []));
-    cards.forEach(c => { if (S.cards[c.idList]) S.cards[c.idList].push(c); });
-    renderLists();
-    showScreen('lists');
-  } catch (e) { toast('Load failed', true); }
-  setLoading(false);
-}
-
-async function archiveCard() {
-  const card = S.selectedCard;
-  setLoading(true, 'Archiving…');
-  try {
-    await trello('/cards/' + card.id, { method: 'PUT', body: JSON.stringify({ closed: true }) });
-    S.cards[S.selectedList.id] = S.cards[S.selectedList.id].filter(c => c.id !== card.id);
-    toast('Card archived ✓');
-    renderCards();
-    showScreen('cards');
-  } catch (e) { toast('Failed to archive', true); }
-  setLoading(false);
-}
-
-async function moveCard(targetListId) {
-  const card = S.selectedCard;
-  setLoading(true, 'Moving…');
-  try {
-    await trello('/cards/' + card.id, {
-      method: 'PUT', body: JSON.stringify({ idList: targetListId }),
-    });
-    S.cards[S.selectedList.id] = S.cards[S.selectedList.id].filter(c => c.id !== card.id);
-    card.idList = targetListId;
-    S.cards[targetListId].push(card);
-    const newList = S.lists.find(l => l.id === targetListId);
-    toast('Moved to ' + (newList ? newList.name : 'list') + ' ✓');
-    S.selectedList = newList || S.selectedList;
-    renderCards();
-    showScreen('cards');
-  } catch (e) { toast('Move failed', true); }
-  setLoading(false);
-}
-
-// ════════════════════════════════════════
-//  RENDER FUNCTIONS
-// ════════════════════════════════════════
-
-function renderBoards() {
-  const grid = document.getElementById('board-grid');
-  grid.innerHTML = S.boards.slice(0, 6).map((b, i) => {
-    const bg = (b.prefs && b.prefs.backgroundColor) || '#1e40af';
-    return '<div class="board-item focusable" tabindex="' + i + '" data-id="' + b.id + '" style="border-color:' + bg + '33;">' +
-      '<div class="board-dot" style="background:' + bg + '"></div>' +
-      '<div class="board-name">' + escH(b.name) + '</div>' +
-      '</div>';
-  }).join('');
-  grid.querySelectorAll('.board-item').forEach(el => {
-    el.addEventListener('click', () => selectBoard(el.dataset.id));
-  });
-}
-
-function renderLists() {
-  document.getElementById('lists-board-title').textContent = S.selectedBoard.name;
-  const cont = document.getElementById('lists-scroll');
-  cont.innerHTML = S.lists.map((l, i) => {
-    const count = (S.cards[l.id] || []).length;
-    return '<div class="list-item focusable" tabindex="' + i + '" data-id="' + l.id + '">' +
-      '<div class="list-name">' + escH(l.name) + '</div>' +
-      '<div class="list-count">' + count + '</div>' +
-      '</div>';
-  }).join('');
-  cont.querySelectorAll('.list-item').forEach(el => {
-    el.addEventListener('click', () => {
-      S.selectedList = S.lists.find(l => l.id === el.dataset.id);
-      renderCards();
-      showScreen('cards');
-    });
-  });
-}
-
-function renderCards() {
-  document.getElementById('cards-list-title').textContent = S.selectedList.name;
-  const cards = S.cards[S.selectedList.id] || [];
-  const cont = document.getElementById('cards-list');
-  if (!cards.length) {
-    cont.innerHTML = '<div style="padding:20px;color:var(--dim);font-size:16px;text-align:center;">No cards in this list</div>';
-    return;
-  }
-  cont.innerHTML = cards.slice(0, 6).map((c, i) => {
-    const labels = (c.labels || []).map(l => {
-      const col = LABEL_COLORS[l.color] || 'rgba(255,255,255,0.3)';
-      return '<span class="label-chip" style="background:' + col + '22;color:' + col + ';border:1px solid ' + col + '44">' + escH(l.name || l.color || '●') + '</span>';
-    }).join('');
-    return '<div class="card-item focusable" tabindex="' + i + '" data-id="' + c.id + '">' +
-      '<div class="card-name">' + escH(c.name) + '</div>' +
-      (labels ? '<div class="card-labels">' + labels + '</div>' : '') +
-      '</div>';
-  }).join('');
-  cont.querySelectorAll('.card-item').forEach(el => {
-    el.addEventListener('click', () => selectCard(el.dataset.id));
-  });
-}
-
-function selectCard(id) {
-  const card = (S.cards[S.selectedList.id] || []).find(c => c.id === id);
-  if (!card) return;
-  S.selectedCard = card;
-
-  document.getElementById('detail-list-name').textContent = S.selectedList.name;
-  document.getElementById('detail-card-name').textContent = card.name;
-
-  const labelsEl = document.getElementById('detail-labels');
-  labelsEl.innerHTML = (card.labels || []).map(l => {
-    const col = LABEL_COLORS[l.color] || 'rgba(255,255,255,0.3)';
-    return '<span class="label-chip" style="background:' + col + '22;color:' + col + ';border:1px solid ' + col + '44;font-size:12px;padding:3px 10px">' + escH(l.name || l.color) + '</span>';
-  }).join('');
-
-  const desc = (card.desc || '').trim();
-  document.getElementById('detail-desc').textContent = desc;
-  document.getElementById('detail-desc-label').style.display = desc ? 'block' : 'none';
-
-  document.querySelectorAll('#screen-detail .action-btn').forEach(btn => {
-    btn.onclick = () => {
-      const a = btn.dataset.action;
-      if (a === 'archive') archiveCard();
-      else if (a === 'move') showMoveScreen();
-      else if (a === 'back') showScreen('cards');
-    };
-  });
-
-  showScreen('detail');
-}
-
-function showMoveScreen() {
-  const cont = document.getElementById('move-list');
-  cont.innerHTML = S.lists.map((l, i) => {
-    const isCurrent = l.id === S.selectedList.id;
-    return '<div class="move-item focusable' + (isCurrent ? ' current' : '') + '" tabindex="' + i + '" data-id="' + l.id + '">' +
-      (isCurrent ? '<span class="move-check">✓</span>' : '<span style="width:18px;display:inline-block"></span>') +
-      escH(l.name) + '</div>';
-  }).join('');
-  cont.querySelectorAll('.move-item:not(.current)').forEach(el => {
-    el.addEventListener('click', () => moveCard(el.dataset.id));
-  });
-  showScreen('move');
-}
-
-// ════════════════════════════════════════
-//  NEURAL BAND / CAPTOUCH D-PAD NAVIGATION
-//
-//  Per MRBD docs: Neural Band and captouch
-//  gestures emit ArrowUp/Down/Left/Right
-//  and Enter. No mouse/touch/keyboard.
-//  Every interactive element must be
-//  reachable via these inputs.
-// ════════════════════════════════════════
-
-function getFocusables() {
-  return Array.from(
-    document.getElementById('screen-' + S.currentScreen)
-      .querySelectorAll('.focusable:not([disabled])')
-  );
-}
-
-function moveFocus(dir) {
-  const focusables = getFocusables();
-  if (!focusables.length) return;
-  const idx = focusables.indexOf(document.activeElement);
-  if (idx === -1) { focusables[0].focus(); return; }
-
-  let next;
-
-  if (S.currentScreen === 'boards') {
-    // 2-column grid — map direction to grid position
-    const cols = 2;
-    if (dir === 'right') next = idx + 1;
-    else if (dir === 'left') next = idx - 1;
-    else if (dir === 'up') next = idx - cols;
-    else next = idx + cols;
-    next = Math.max(0, Math.min(focusables.length - 1, next));
-  } else {
-    const isBack = dir === 'up' || dir === 'left';
-    next = isBack
-      ? (idx > 0 ? idx - 1 : focusables.length - 1)
-      : (idx < focusables.length - 1 ? idx + 1 : 0);
-  }
-
-  focusables[next].focus();
-  focusables[next].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-}
-
-document.addEventListener('keydown', function (e) {
-  switch (e.key) {
-    case DPAD.UP:     moveFocus('up');   break;
-    case DPAD.DOWN:   moveFocus('down'); break;
-    case DPAD.RIGHT:  moveFocus('right'); break;
-    case DPAD.LEFT:
-      if (['lists','cards','detail','move'].includes(S.currentScreen)) goBack();
-      else moveFocus('left');
-      break;
-    case DPAD.SELECT:
-      if (document.activeElement.classList.contains('focusable'))
-        document.activeElement.click();
-      break;
-    case DPAD.BACK: goBack(); break;
-    default: return;
-  }
-  e.preventDefault();
-});
-
-function goBack() {
-  const map = { lists:'boards', cards:'lists', detail:'cards', move:'detail' };
-  const dest = map[S.currentScreen];
-  if (dest) showScreen(dest);
-}
-
-// ════════════════════════════════════════
-//  SCREEN MANAGEMENT
-// ════════════════════════════════════════
-
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-' + id).classList.add('active');
-  S.currentScreen = id;
-  setTimeout(() => {
-    const first = document.getElementById('screen-' + id).querySelector('.focusable');
-    if (first) first.focus();
-  }, 60);
-}
-
-// ════════════════════════════════════════
-//  UI HELPERS
-// ════════════════════════════════════════
-
-function setLoading(on, msg) {
-  const el = document.getElementById('loading');
-  if (msg) el.querySelector('.loading-text').textContent = msg;
-  on ? el.classList.add('show') : el.classList.remove('show');
-}
-
-let toastTimer;
-function toast(msg, isError) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'toast show' + (isError ? ' error' : '');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
-}
-
-function escH(s) {
-  return String(s || '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ════════════════════════════════════════
-//  INIT — check for OAuth token in URL
-//  hash on page load (Trello redirect)
-// ════════════════════════════════════════
-(function init() {
-  const hash = window.location.hash;
-  if (hash && hash.includes('token=')) {
-    const token = hash.split('token=')[1].split('&')[0];
-    if (token) { storeAndLogin(token); return; }
-  }
-  if (S.token) {
-    loadBoards();
-  } else {
-    showScreen('login');
-    setTimeout(() => {
-      const btn = document.getElementById('btn-authorize');
-      if (btn) btn.focus();
-    }, 100);
-  }
-})();
-</script>
+        // Init
+        window.onload = () => {
+            loadCredentials();
+            if (apiKey && token) {
+                loadBoards();
+            } else {
+                showScreen('login-screen');
+            }
+        };
+    </script>
 </body>
 </html>
