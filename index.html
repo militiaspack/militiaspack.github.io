@@ -2,542 +2,857 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trello — Ray-Ban Display</title>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<meta name="viewport" content="width=600, height=600, initial-scale=1.0, user-scalable=no">
+<title>Trello · MRBD</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg: #f5f4f0; --surface: #ffffff; --surface2: #eeede9;
-  --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
-  --text: #1a1916; --muted: #7a7974;
-  --accent: #2563eb; --accent-bg: #eff6ff;
-  --warn: #b45309; --warn-bg: #fffbeb;
-  --danger: #dc2626; --danger-bg: #fef2f2;
-  --success: #16a34a; --success-bg: #f0fdf4;
-  --sans: 'Instrument Sans', system-ui, sans-serif;
-  --r: 10px; --r-sm: 6px;
-}
-body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-/* ── SHARED ── */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  padding: 10px 18px; border-radius: var(--r-sm);
-  font-family: var(--sans); font-size: 14px; font-weight: 500;
-  cursor: pointer; transition: background 0.15s; border: none; letter-spacing: -0.01em;
-}
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: #1d4ed8; }
-.btn-ghost { background: var(--surface2); color: var(--text); border: 0.5px solid var(--border2); }
-.btn-ghost:hover { background: var(--border); }
-.btn-full { width: 100%; margin-top: 4px; }
-.btn-sm { padding: 7px 12px; font-size: 13px; }
-.field-input {
-  width: 100%; border: 0.5px solid var(--border2); border-radius: var(--r-sm);
-  padding: 10px 12px; font-family: var(--sans); font-size: 14px; color: var(--text);
-  background: var(--surface); outline: none; transition: border-color 0.15s, box-shadow 0.15s;
-}
-.field-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-.field-input::placeholder { color: var(--muted); opacity: 0.7; }
-.field-label { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0.02em; margin-bottom: 5px; }
+/* ─────────────────────────────────────
+   IMPORTANT: Replace YOUR_TRELLO_API_KEY
+   on line ~340 with your actual key from
+   https://trello.com/app-key
+   ───────────────────────────────────── */
 
-/* ══════════════════════════════
-   DISPLAY VIEW  (600×600 frame)
-══════════════════════════════ */
-.frame-wrap {
-  display: flex; align-items: flex-start; justify-content: center;
-  min-height: 100vh; padding: 32px 16px 40px; gap: 32px; flex-wrap: wrap;
+:root{
+  --cyan:#00d4ff;
+  --green:#7ee8a2;
+  --amber:#f7c843;
+  --red:#ff5c5c;
+  --purple:#c084fc;
+  --white:#ffffff;
+  --dim:#8899b0;
+  --darker:#334155;
+  --focus-glow:0 0 20px rgba(0,212,255,0.5);
 }
-.frame-label { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; text-align: center; margin-bottom: 10px; }
-.display-frame {
-  width: 600px; min-height: 600px; background: var(--surface);
-  border: 1px solid var(--border2); border-radius: 20px;
-  overflow: hidden; display: flex; flex-direction: column; flex-shrink: 0; position: relative;
+
+/* MRBD: black = fully transparent on additive waveguide display */
+body{
+  width:600px;height:600px;
+  overflow:hidden;
+  background:#000;
+  color:var(--white);
+  font-family:'DM Sans',system-ui,sans-serif;
+  font-size:16px;
 }
-.topbar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px 14px; border-bottom: 0.5px solid var(--border);
-  background: var(--surface); flex-shrink: 0;
+
+/* ── Screens ── */
+.screen{
+  width:600px;height:600px;
+  position:absolute;top:0;left:0;
+  display:none;flex-direction:column;
 }
-.topbar-left { display: flex; align-items: center; gap: 10px; }
-.app-icon { width: 28px; height: 28px; background: var(--accent); border-radius: 7px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 600; flex-shrink: 0; }
-.app-name { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
-.topbar-right { display: flex; align-items: center; gap: 10px; }
-.clock { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 500; }
-.icon-btn { width: 32px; height: 32px; border-radius: var(--r-sm); border: 0.5px solid var(--border2); background: var(--surface2); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 15px; transition: background 0.15s, color 0.15s; }
-.icon-btn:hover { background: var(--border); color: var(--text); }
-.scroll-area { flex: 1; overflow-y: auto; padding: 16px; }
-.scroll-area::-webkit-scrollbar { width: 4px; }
-.scroll-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+.screen.active{display:flex;}
 
-/* waiting screen */
-.waiting-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 480px; padding: 32px; gap: 16px; text-align: center; }
-.waiting-title { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
-.waiting-sub { font-size: 13px; color: var(--muted); max-width: 320px; line-height: 1.6; }
-.qr-box { background: #fff; border: 1px solid var(--border2); border-radius: 12px; padding: 16px; display: inline-block; }
-.step-list { display: flex; flex-direction: column; gap: 8px; text-align: left; width: 100%; max-width: 320px; }
-.step-row { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--muted); }
-.step-num { width: 20px; height: 20px; border-radius: 50%; background: var(--accent-bg); color: var(--accent); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-.step-row span { color: var(--text); }
-.connecting-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 480px; gap: 14px; }
-.spinner { width: 28px; height: 28px; border: 2.5px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.connecting-text { font-size: 14px; color: var(--muted); }
+/* ── Top bar ── */
+.topbar{
+  display:flex;align-items:center;
+  padding:12px 20px 10px;gap:10px;
+  border-bottom:1px solid rgba(0,212,255,0.15);
+  flex-shrink:0;
+}
+.topbar-logo{
+  font-family:'Space Mono',monospace;
+  font-size:11px;letter-spacing:.15em;
+  color:var(--cyan);opacity:.7;
+}
+.topbar-title{
+  font-family:'Space Mono',monospace;
+  font-size:13px;color:var(--white);
+  flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.topbar-hint{
+  font-family:'Space Mono',monospace;
+  font-size:9px;color:rgba(0,212,255,.4);letter-spacing:.08em;
+}
+.dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--green);animation:blink 2s infinite;flex-shrink:0;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 
-/* board / cards */
-.board-bar { display: flex; align-items: center; gap: 8px; padding: 0 0 14px; }
-.board-picker { flex: 1; border: 0.5px solid var(--border2); border-radius: var(--r-sm); padding: 9px 12px; font-family: var(--sans); font-size: 14px; color: var(--text); background: var(--surface); outline: none; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a7974' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
-.board-picker:focus { border-color: var(--accent); }
-.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 14px; }
-.stat-card { background: var(--surface2); border-radius: var(--r-sm); padding: 10px 12px; }
-.stat-label { font-size: 11px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
-.stat-val { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; line-height: 1.1; }
-.stat-val.danger { color: var(--danger); }
-.lists-grid { display: flex; flex-direction: column; gap: 12px; }
-.list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
-.list-name { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
-.list-badge { font-size: 11px; font-weight: 500; color: var(--muted); background: var(--surface2); border-radius: 4px; padding: 1px 7px; }
-.cards-stack { display: flex; flex-direction: column; gap: 6px; }
-.card-tile { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r); padding: 12px 14px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
-.card-tile:hover { border-color: var(--border2); background: #fafaf8; }
-.card-title { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.4; margin-bottom: 6px; }
-.card-footer { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 20px; }
-.pill-warn { background: var(--warn-bg); color: var(--warn); }
-.pill-danger { background: var(--danger-bg); color: var(--danger); }
-.pill-info { background: var(--accent-bg); color: var(--accent); }
-.empty-state { font-size: 13px; color: var(--muted); padding: 12px 0 4px; font-style: italic; }
-.voice-bar { border-top: 0.5px solid var(--border); padding: 12px 14px; background: var(--surface); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.mic-btn { width: 40px; height: 40px; border-radius: 50%; border: 0.5px solid var(--border2); background: var(--surface2); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; transition: all 0.15s; }
-.mic-btn:hover { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
-.mic-btn.active { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); animation: mic-ring 1.2s ease-in-out infinite; }
-@keyframes mic-ring { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0.3);}50%{box-shadow:0 0 0 6px rgba(220,38,38,0);} }
-.voice-input-field { flex: 1; border: 0.5px solid var(--border2); border-radius: var(--r-sm); padding: 9px 12px; font-family: var(--sans); font-size: 14px; color: var(--text); background: var(--surface2); outline: none; transition: border-color 0.15s, background 0.15s; }
-.voice-input-field:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
-.voice-input-field::placeholder { color: var(--muted); }
-.list-target { position: relative; flex-shrink: 0; }
-.target-btn { border: 0.5px solid var(--border2); border-radius: var(--r-sm); padding: 9px 10px; font-size: 12px; font-weight: 500; color: var(--muted); background: var(--surface2); cursor: pointer; white-space: nowrap; max-width: 110px; overflow: hidden; text-overflow: ellipsis; display: block; }
-.target-menu { position: absolute; bottom: calc(100% + 6px); right: 0; background: var(--surface); border: 0.5px solid var(--border2); border-radius: var(--r); overflow: hidden; min-width: 160px; display: none; z-index: 10; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-.target-menu.open { display: block; }
-.target-opt { padding: 10px 14px; font-size: 13px; color: var(--text); cursor: pointer; transition: background 0.1s; }
-.target-opt:hover { background: var(--surface2); }
-.add-btn { width: 40px; height: 40px; border-radius: var(--r-sm); background: var(--accent); border: none; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; transition: background 0.15s; }
-.add-btn:hover { background: #1d4ed8; }
-.modal-layer { display: none; position: absolute; inset: 0; background: rgba(245,244,240,0.88); z-index: 40; align-items: center; justify-content: center; padding: 20px; border-radius: 20px; }
-.modal-layer.open { display: flex; }
-.modal-box { background: var(--surface); border: 0.5px solid var(--border2); border-radius: 14px; padding: 22px; width: 100%; max-width: 460px; position: relative; }
-.modal-list-name { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
-.modal-card-title { font-size: 18px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; margin-bottom: 14px; line-height: 1.35; }
-.modal-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; font-style: italic; }
-.modal-meta { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
-.modal-meta-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-.modal-meta-row span { color: var(--text); }
-.modal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.modal-close { position: absolute; top: 14px; right: 14px; background: var(--surface2); border: 0.5px solid var(--border); border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--muted); cursor: pointer; }
-.modal-close:hover { color: var(--text); }
-.toast { position: absolute; top: 14px; left: 50%; transform: translateX(-50%) translateY(-8px); background: var(--text); color: #fff; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 20px; white-space: nowrap; z-index: 50; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast.err { background: var(--danger); }
-.side-panel { width: 280px; display: flex; flex-direction: column; gap: 16px; padding-top: 30px; }
-.panel-card { background: var(--surface); border: 0.5px solid var(--border2); border-radius: var(--r); padding: 16px; }
-.panel-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px; }
-.spec-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 12px; }
-.spec-row:last-child { border-bottom: none; }
-.spec-key { color: var(--muted); }
-.spec-val { font-weight: 500; color: var(--text); }
+/* ── Nav hint ── */
+.nav-hint{
+  padding:6px 20px;
+  font-family:'Space Mono',monospace;font-size:9px;
+  color:rgba(0,212,255,.3);letter-spacing:.08em;
+  display:flex;gap:16px;flex-shrink:0;
+  border-top:1px solid rgba(0,212,255,.08);
+}
 
-/* ══════════════════════════════
-   PHONE SETUP PAGE
-══════════════════════════════ */
-.phone-page { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 40px 16px; }
-.phone-card { background: var(--surface); border: 0.5px solid var(--border2); border-radius: 18px; padding: 36px 32px; max-width: 420px; width: 100%; }
-.phone-header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
-.phone-icon { width: 44px; height: 44px; background: var(--accent); border-radius: 11px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px; }
-.phone-title { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
-.phone-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; line-height: 1.55; }
-.phone-sub a { color: var(--accent); text-decoration: none; }
-.phone-sub a:hover { text-decoration: underline; }
-.field-group { display: flex; flex-direction: column; gap: 14px; }
-.field-wrap { display: flex; flex-direction: column; gap: 5px; }
-.success-wrap { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 12px 0; }
-.success-icon { width: 52px; height: 52px; background: var(--success-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-.success-title { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
-.success-sub { font-size: 13px; color: var(--muted); line-height: 1.55; }
+/* ── Focus / Focusable ── */
+/* Per MRBD docs: min-height 88px, border highlight, glow on focus */
+.focusable{
+  transition:all 150ms ease;
+  border:2px solid transparent;
+  min-height:88px;
+}
+.focusable:focus{
+  outline:none;
+  border-color:var(--cyan);
+  box-shadow:var(--focus-glow);
+}
+
+/* ─────────────────────────────────────
+   LOGIN SCREEN
+   Uses Trello OAuth — no text input.
+   User navigates to auth URL on phone,
+   approves, token stored in localStorage.
+   ───────────────────────────────────── */
+#screen-login{
+  align-items:center;justify-content:center;
+  padding:40px;gap:18px;text-align:center;
+}
+.login-icon{font-size:52px;margin-bottom:4px;}
+.login-title{
+  font-family:'Space Mono',monospace;
+  font-size:22px;color:var(--cyan);letter-spacing:.08em;
+}
+.login-sub{font-size:14px;color:var(--dim);line-height:1.7;max-width:460px;}
+.login-url-box{
+  background:rgba(0,212,255,.08);
+  border:1px solid rgba(0,212,255,.25);
+  border-radius:10px;padding:12px 16px;
+  font-family:'Space Mono',monospace;font-size:11px;
+  color:var(--cyan);width:100%;word-break:break-all;line-height:1.6;
+}
+.login-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:16px 24px;border-radius:12px;
+  border:2px solid transparent;
+  background:rgba(0,212,255,.1);
+  color:var(--cyan);font-size:16px;
+  cursor:pointer;width:100%;
+  font-family:'Space Mono',monospace;
+  transition:all .15s;
+  min-height:88px; /* MRBD tap target */
+}
+.login-btn:focus{
+  outline:none;border-color:var(--cyan);
+  box-shadow:var(--focus-glow);
+}
+.login-btn:hover{background:rgba(0,212,255,.18);}
+
+/* ── Boards screen ── */
+#screen-boards{padding:0;}
+.board-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:10px;padding:12px 20px 20px;
+  overflow:hidden;flex:1;
+}
+.board-item{
+  border-radius:12px;border:2px solid transparent;
+  padding:20px 14px;cursor:pointer;
+  display:flex;flex-direction:column;gap:8px;
+  transition:border-color .15s;
+  background:rgba(255,255,255,.04);
+  min-height:88px; /* MRBD tap target */
+}
+.board-item:focus{
+  outline:none;border-color:var(--cyan);
+  box-shadow:var(--focus-glow);
+}
+.board-dot{width:10px;height:10px;border-radius:50%;}
+.board-name{font-size:16px;font-weight:500;color:var(--white);line-height:1.3;}
+.board-meta{font-family:'Space Mono',monospace;font-size:10px;color:var(--dim);}
+
+/* ── Lists screen ── */
+.lists-scroll{
+  display:flex;flex-direction:column;gap:6px;
+  padding:10px 20px 20px;flex:1;overflow:hidden;
+}
+.list-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-radius:10px;
+  border:2px solid transparent;
+  background:rgba(255,255,255,.04);
+  cursor:pointer;transition:all .15s;min-height:88px;
+}
+.list-item:focus{outline:none;border-color:var(--cyan);box-shadow:var(--focus-glow);}
+.list-name{font-size:18px;font-weight:500;color:var(--white);}
+.list-count{font-family:'Space Mono',monospace;font-size:20px;color:var(--cyan);}
+
+/* ── Cards screen ── */
+.cards-list{
+  display:flex;flex-direction:column;gap:6px;
+  padding:10px 20px 10px;flex:1;overflow:hidden;
+}
+.card-item{
+  padding:12px 16px;border-radius:10px;
+  border:2px solid transparent;
+  background:rgba(255,255,255,.05);
+  cursor:pointer;transition:all .15s;
+  min-height:72px; /* cards can be shorter since they stack */
+  display:flex;flex-direction:column;justify-content:center;gap:5px;
+}
+.card-item:focus{outline:none;border-color:var(--cyan);box-shadow:var(--focus-glow);}
+.card-name{
+  font-size:16px;color:var(--white);line-height:1.35;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.card-labels{display:flex;gap:5px;flex-wrap:wrap;}
+.label-chip{
+  font-size:10px;font-family:'Space Mono',monospace;
+  padding:2px 7px;border-radius:4px;font-weight:700;
+}
+
+/* ── Card detail screen ── */
+.detail-body{
+  padding:14px 20px;flex:1;
+  display:flex;flex-direction:column;gap:10px;overflow:hidden;
+}
+.detail-card-name{font-size:20px;font-weight:500;color:var(--white);line-height:1.4;}
+.detail-desc{
+  font-size:14px;color:var(--dim);line-height:1.6;flex:1;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;
+}
+.detail-section-label{
+  font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:.1em;color:rgba(0,212,255,.5);
+  text-transform:uppercase;margin-top:4px;
+}
+.detail-labels{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+.detail-actions{
+  display:flex;flex-direction:column;gap:6px;
+  padding:0 20px 14px;flex-shrink:0;
+}
+.action-btn{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;border-radius:10px;
+  border:2px solid transparent;
+  background:rgba(255,255,255,.05);
+  color:var(--white);font-size:16px;cursor:pointer;
+  min-height:52px;transition:all .15s;
+  font-family:inherit;
+}
+.action-btn:focus{outline:none;border-color:var(--cyan);box-shadow:var(--focus-glow);}
+.action-btn.danger:focus{border-color:var(--red);box-shadow:0 0 20px rgba(255,92,92,.4);}
+.action-icon{font-size:18px;}
+
+/* ── Move screen ── */
+.move-list{
+  display:flex;flex-direction:column;gap:6px;
+  padding:10px 20px 20px;flex:1;overflow:hidden;
+}
+.move-item{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;border-radius:10px;
+  border:2px solid transparent;
+  background:rgba(255,255,255,.04);
+  cursor:pointer;transition:all .15s;
+  min-height:64px;font-size:16px;
+}
+.move-item:focus{outline:none;border-color:var(--cyan);box-shadow:var(--focus-glow);}
+.move-item.current{border-color:rgba(0,212,255,.3);color:var(--dim);}
+.move-check{color:var(--cyan);font-size:14px;}
+
+/* ── Loading overlay ── */
+#loading{
+  position:absolute;top:0;left:0;
+  width:600px;height:600px;
+  background:rgba(0,0,0,.75);
+  display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:14px;z-index:200;
+}
+#loading.show{display:flex;}
+.spinner{
+  width:36px;height:36px;
+  border:3px solid rgba(0,212,255,.2);
+  border-top-color:var(--cyan);border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{
+  font-family:'Space Mono',monospace;font-size:12px;
+  color:var(--cyan);letter-spacing:.1em;
+}
+
+/* ── Toast ── */
+.toast{
+  position:absolute;bottom:20px;left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,212,255,.15);
+  border:1px solid rgba(0,212,255,.4);
+  border-radius:8px;padding:10px 20px;
+  font-family:'Space Mono',monospace;font-size:12px;
+  color:var(--cyan);pointer-events:none;
+  opacity:0;transition:opacity .3s;
+  white-space:nowrap;z-index:100;
+}
+.toast.show{opacity:1;}
+.toast.error{background:rgba(255,92,92,.15);border-color:rgba(255,92,92,.4);color:var(--red);}
 </style>
 </head>
 <body>
 
-<!-- ════════════════════════════
-     DISPLAY VIEW (default)
-════════════════════════════ -->
-<div id="display-page">
-<div class="frame-wrap">
-  <div>
-    <div class="frame-label">Meta Ray-Ban Display · 600×600px · 20° FOV</div>
-    <div class="display-frame" id="display">
-
-      <div class="topbar">
-        <div class="topbar-left">
-          <div class="app-icon">T</div>
-          <span class="app-name">Trello</span>
-        </div>
-        <div class="topbar-right">
-          <span class="clock" id="clock">--:--</span>
-          <button class="icon-btn" id="refresh-btn" onclick="refresh()" style="display:none">↻</button>
-          <button class="icon-btn" id="logout-btn" onclick="logout()" style="display:none" title="Disconnect">⏻</button>
-        </div>
-      </div>
-
-      <!-- WAITING FOR QR SCAN -->
-      <div class="scroll-area" id="waiting-view">
-        <div class="waiting-wrap">
-          <div style="font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Setup required</div>
-          <div class="waiting-title">Scan to connect</div>
-          <p class="waiting-sub">Scan this QR code on your phone to enter your Trello credentials. The display will connect automatically.</p>
-          <div class="qr-box" id="qr-container"></div>
-          <div class="step-list">
-            <div class="step-row"><div class="step-num">1</div><div>Scan the QR code with your phone camera</div></div>
-            <div class="step-row"><div class="step-num">2</div><div>Enter your Trello API key &amp; token on your phone</div></div>
-            <div class="step-row"><div class="step-num">3</div><div><span>Display connects automatically</span> — no typing needed</div></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CONNECTING SPINNER -->
-      <div class="scroll-area" id="connecting-view" style="display:none">
-        <div class="connecting-wrap">
-          <div class="spinner"></div>
-          <div class="connecting-text">Connecting to Trello…</div>
-        </div>
-      </div>
-
-      <!-- MAIN BOARDS VIEW -->
-      <div class="scroll-area" id="main-view" style="display:none">
-        <div class="board-bar">
-          <select class="board-picker" id="board-picker" onchange="loadBoard(this.value)">
-            <option value="">Select a board…</option>
-          </select>
-        </div>
-        <div id="stats-row" class="stats-row" style="display:none"></div>
-        <div class="lists-grid" id="lists-grid"></div>
-      </div>
-
-      <!-- VOICE BAR -->
-      <div class="voice-bar" id="voice-bar" style="display:none">
-        <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Voice input">🎤</button>
-        <input class="voice-input-field" id="voice-field" type="text" placeholder="New card name…" onkeydown="if(event.key==='Enter')addCard()">
-        <div class="list-target">
-          <button class="target-btn" id="target-btn" onclick="toggleMenu()">Pick list ▾</button>
-          <div class="target-menu" id="target-menu"></div>
-        </div>
-        <button class="add-btn" onclick="addCard()">+</button>
-      </div>
-
-      <!-- CARD MODAL -->
-      <div class="modal-layer" id="modal" onclick="closeModalOut(event)">
-        <div class="modal-box">
-          <button class="modal-close" onclick="closeModal()">✕</button>
-          <div class="modal-list-name" id="m-list"></div>
-          <div class="modal-card-title" id="m-title"></div>
-          <div class="modal-desc" id="m-desc"></div>
-          <div class="modal-meta" id="m-meta"></div>
-          <div class="modal-actions" id="m-actions"></div>
-        </div>
-      </div>
-
-      <div class="toast" id="toast"></div>
-    </div>
-  </div>
-
-  <div class="side-panel">
-    <div class="panel-card">
-      <div class="panel-title">How it works</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.65;">
-        The display shows a QR code on first launch. Scan it on your phone to open the setup page, enter your Trello credentials once, and the display connects automatically — no typing on the glasses.
-      </div>
-    </div>
-    <div class="panel-card">
-      <div class="panel-title">Display specs</div>
-      <div class="spec-row"><span class="spec-key">Resolution</span><span class="spec-val">600 × 600 px</span></div>
-      <div class="spec-row"><span class="spec-key">Field of view</span><span class="spec-val">20°</span></div>
-      <div class="spec-row"><span class="spec-key">Brightness</span><span class="spec-val">up to 5,000 nits</span></div>
-      <div class="spec-row"><span class="spec-key">Refresh rate</span><span class="spec-val">30 Hz content</span></div>
-      <div class="spec-row"><span class="spec-key">Projection</span><span class="spec-val">LCOS waveguide</span></div>
-    </div>
-  </div>
-</div>
+<!-- ══════════════════════════════════
+     LOGIN SCREEN
+     Trello OAuth — no text input needed.
+     Shows a button the user focuses with
+     Neural Band and presses Enter to open
+     the Trello auth page on their phone.
+     ══════════════════════════════════ -->
+<div id="screen-login" class="screen active">
+  <div class="login-icon">🕶️</div>
+  <div class="login-title">TRELLO HUD</div>
+  <p class="login-sub">
+    Press <strong style="color:var(--cyan)">Enter / select</strong> to authorize
+    with Trello. The auth page will open in your phone's browser — approve it
+    and you'll be logged in automatically.
+  </p>
+  <div id="login-url-display" class="login-url-box" style="display:none"></div>
+  <button class="login-btn focusable" tabindex="0" id="btn-authorize" onclick="startOAuth()">
+    🔐 &nbsp;Authorize with Trello
+  </button>
+  <p style="font-size:12px;color:var(--dim)">
+    Already authorized?
+    <span style="color:var(--cyan);cursor:pointer" onclick="checkStoredToken()">Load saved token</span>
+  </p>
 </div>
 
-<!-- ════════════════════════════
-     PHONE SETUP PAGE
-════════════════════════════ -->
-<div id="phone-page" class="phone-page">
-  <div class="phone-card">
-    <div id="phone-form-view">
-      <div class="phone-header">
-        <div class="phone-icon">📋</div>
-        <div class="phone-title">Connect Trello</div>
-      </div>
-      <p class="phone-sub" style="margin-top:6px;">
-        Get your API key and token at <a href="https://trello.com/app-key" target="_blank">trello.com/app-key</a>. Generate a token with read + write access. Your credentials are never stored on any server.
-      </p>
-      <div class="field-group">
-        <div class="field-wrap">
-          <div class="field-label">API Key</div>
-          <input class="field-input" id="p-key" type="text" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="field-wrap">
-          <div class="field-label">Token</div>
-          <input class="field-input" id="p-tok" type="password" placeholder="Token from trello.com/app-key" autocomplete="off">
-        </div>
-        <button class="btn btn-primary btn-full" onclick="phoneSubmit()">Send to display →</button>
-        <p style="font-size:11px;color:var(--muted);text-align:center;">Credentials are passed directly to your glasses display via the URL — nothing is stored on any server.</p>
-      </div>
-    </div>
-    <div id="phone-success-view" style="display:none">
-      <div class="success-wrap">
-        <div class="success-icon">✓</div>
-        <div class="success-title">Credentials sent!</div>
-        <p class="success-sub">Your Trello display should now be connecting. Look at your glasses — it will load your boards automatically.</p>
-        <button class="btn btn-ghost btn-sm" onclick="phoneReset()">Enter different credentials</button>
-      </div>
-    </div>
+<!-- ══════════════════════════════════
+     BOARDS SCREEN
+     ══════════════════════════════════ -->
+<div id="screen-boards" class="screen">
+  <div class="topbar">
+    <div class="dot"></div>
+    <div class="topbar-logo">TRELLO HUD</div>
+    <div class="topbar-title">Select Board</div>
+    <div class="topbar-hint">↕ NAV · ↵ SELECT</div>
+  </div>
+  <div class="board-grid" id="board-grid"></div>
+  <div class="nav-hint">
+    <span>↑↓←→ navigate</span><span>↵ select</span>
   </div>
 </div>
+
+<!-- ══════════════════════════════════
+     LISTS SCREEN
+     ══════════════════════════════════ -->
+<div id="screen-lists" class="screen">
+  <div class="topbar">
+    <div class="dot"></div>
+    <div class="topbar-logo">TRELLO HUD</div>
+    <div class="topbar-title" id="lists-board-title"></div>
+    <div class="topbar-hint">↵ OPEN</div>
+  </div>
+  <div class="lists-scroll" id="lists-scroll"></div>
+  <div class="nav-hint">
+    <span>↑↓ navigate</span><span>↵ open list</span><span>← back</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     CARDS SCREEN
+     ══════════════════════════════════ -->
+<div id="screen-cards" class="screen">
+  <div class="topbar">
+    <div class="dot"></div>
+    <div class="topbar-logo">TRELLO HUD</div>
+    <div class="topbar-title" id="cards-list-title"></div>
+    <div class="topbar-hint">↵ VIEW</div>
+  </div>
+  <div class="cards-list" id="cards-list"></div>
+  <div class="nav-hint">
+    <span>↑↓ navigate</span><span>↵ open card</span><span>← back</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     CARD DETAIL SCREEN
+     ══════════════════════════════════ -->
+<div id="screen-detail" class="screen">
+  <div class="topbar">
+    <div class="dot"></div>
+    <div class="topbar-logo">TRELLO HUD</div>
+    <div class="topbar-title" id="detail-list-name"></div>
+    <div class="topbar-hint">↵ ACTION</div>
+  </div>
+  <div class="detail-body">
+    <div class="detail-card-name" id="detail-card-name"></div>
+    <div class="detail-labels" id="detail-labels"></div>
+    <div class="detail-section-label" id="detail-desc-label" style="display:none">Description</div>
+    <div class="detail-desc" id="detail-desc"></div>
+  </div>
+  <div class="detail-actions">
+    <div class="action-btn focusable" tabindex="0" data-action="archive">
+      <span class="action-icon">📦</span> Archive card
+    </div>
+    <div class="action-btn focusable" tabindex="0" data-action="move">
+      <span class="action-icon">↗️</span> Move to list…
+    </div>
+    <div class="action-btn focusable" tabindex="0" data-action="back">
+      <span class="action-icon">←</span> Back to list
+    </div>
+  </div>
+  <div class="nav-hint">
+    <span>↑↓ navigate</span><span>↵ select action</span><span>← back</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MOVE SCREEN
+     ══════════════════════════════════ -->
+<div id="screen-move" class="screen">
+  <div class="topbar">
+    <div class="dot"></div>
+    <div class="topbar-logo">TRELLO HUD</div>
+    <div class="topbar-title">Move to…</div>
+    <div class="topbar-hint">↵ CONFIRM</div>
+  </div>
+  <div class="move-list" id="move-list"></div>
+  <div class="nav-hint">
+    <span>↑↓ navigate</span><span>↵ move here</span><span>← cancel</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     LOADING OVERLAY
+     ══════════════════════════════════ -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading…</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
 
 <script>
-const API = 'https://api.trello.com/1';
-let key='', tok='', boards=[], lists=[], cards=[], currentBoard=null;
-let selListId=null, selListName='Pick list';
-let recognition=null, listening=false;
-let pollTimer=null;
+// ════════════════════════════════════════
+//  !! REPLACE THIS WITH YOUR API KEY !!
+//  Get it at: https://trello.com/app-key
+// ════════════════════════════════════════
+const TRELLO_API_KEY = '67c9029f2d000311400426fca642acaf';
 
-// ── ROUTING ──
-function route() {
-  const p = new URLSearchParams(location.search);
-  if (p.get('page') === 'setup') {
-    document.getElementById('display-page').style.display = 'none';
-    document.getElementById('phone-page').style.display = 'flex';
-    return;
-  }
-  // Check if credentials were passed via URL (from phone setup)
-  const k = p.get('k'), t = p.get('t');
-  if (k && t) {
-    localStorage.setItem('tk', k); localStorage.setItem('tt', t);
-    // Clean URL
-    history.replaceState({}, '', location.pathname);
-    bootDisplay(k, t);
-    return;
-  }
-  // Check localStorage
-  const sk = localStorage.getItem('tk'), st = localStorage.getItem('tt');
-  if (sk && st) { bootDisplay(sk, st); return; }
-  // Show QR waiting screen
-  showWaiting();
+// OAuth return URL — must match exactly what you set in the Trello app settings.
+// For local dev, use: http://localhost:PORT/trello-mrbd.html
+// For hosted, use your HTTPS URL e.g. https://yourapp.vercel.app/trello-mrbd.html
+const RETURN_URL = window.location.href.split('?')[0].split('#')[0];
+
+// ─────────────────────────────────────
+const DPAD = {
+  UP:'ArrowUp', DOWN:'ArrowDown',
+  LEFT:'ArrowLeft', RIGHT:'ArrowRight',
+  SELECT:'Enter', BACK:'Escape',
+};
+
+const LABEL_COLORS = {
+  green:'#7ee8a2', yellow:'#f7c843', orange:'#f4a03b',
+  red:'#ff5c5c',   purple:'#c084fc', blue:'#3fb0ff',
+  sky:'#67c9f8',   lime:'#aadd55',   pink:'#f987cb',
+  black:'#aaa',    none:'rgba(255,255,255,0.3)',
+};
+
+const S = {
+  token: localStorage.getItem('trello_token') || '',
+  boards: [],
+  selectedBoard: null,
+  lists: [],
+  cards: {},
+  selectedList: null,
+  selectedCard: null,
+  currentScreen: 'login',
+};
+
+// ════════════════════════════════════════
+//  TRELLO OAUTH — no text input required
+//
+//  Flow:
+//  1. App opens Trello authorize URL in phone browser (window.open)
+//  2. User taps Approve on phone
+//  3. Trello redirects back to RETURN_URL with #token=xxx in the hash
+//  4. On page load, we check for that hash and store the token
+// ════════════════════════════════════════
+
+function startOAuth() {
+  // Build the Trello OAuth URL
+  const authUrl =
+    'https://trello.com/1/authorize' +
+    '?expiration=never' +
+    '&name=TrelloHUD' +
+    '&scope=read,write' +
+    '&response_type=token' +
+    '&key=' + TRELLO_API_KEY +
+    '&return_url=' + encodeURIComponent(RETURN_URL) +
+    '&callback_method=fragment';
+
+  // Show the URL so the user can see where they're going
+  const urlBox = document.getElementById('login-url-display');
+  urlBox.textContent = authUrl;
+  urlBox.style.display = 'block';
+
+  // Open in phone browser via window.open
+  // On the glasses, this opens on the paired phone
+  window.open(authUrl, '_blank');
+
+  toast('Approve on your phone, then return here');
+
+  // Poll for the token appearing (covers the case where the glasses
+  // reopen this page with the hash fragment after redirect)
+  startTokenPoll();
 }
 
-function showWaiting() {
-  buildQR();
-  startPolling();
-}
-
-function buildQR() {
-  const setupUrl = location.href.split('?')[0] + '?page=setup&display=1';
-  const el = document.getElementById('qr-container');
-  el.innerHTML = '';
-  new QRCode(el, { text: setupUrl, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
-}
-
-// Poll localStorage for credentials written by the setup page
-// (works when both are open in the same browser / same origin)
-function startPolling() {
-  pollTimer = setInterval(() => {
-    const k = localStorage.getItem('tk'), t = localStorage.getItem('tt');
-    if (k && t) { clearInterval(pollTimer); bootDisplay(k, t); }
+function startTokenPoll() {
+  const interval = setInterval(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes('token=')) {
+      const token = hash.split('token=')[1].split('&')[0];
+      if (token) {
+        clearInterval(interval);
+        storeAndLogin(token);
+      }
+    }
+    // Also check localStorage in case another tab/window wrote it
+    const stored = localStorage.getItem('trello_token');
+    if (stored && stored !== S.token) {
+      clearInterval(interval);
+      storeAndLogin(stored);
+    }
   }, 1000);
 }
 
-async function bootDisplay(k, t) {
-  key = k; tok = t;
-  show('connecting-view');
-  try {
-    await trello('/members/me?fields=id');
-    show('main-view');
-    document.getElementById('voice-bar').style.display = 'flex';
-    document.getElementById('refresh-btn').style.display = 'flex';
-    document.getElementById('logout-btn').style.display = 'flex';
-    await loadBoards();
-  } catch(e) {
-    localStorage.removeItem('tk'); localStorage.removeItem('tt');
-    show('waiting-view');
-    buildQR(); startPolling();
-    toast('Auth failed — rescan QR to try again', true);
+function checkStoredToken() {
+  const t = localStorage.getItem('trello_token');
+  if (t) {
+    storeAndLogin(t);
+  } else {
+    toast('No saved token found', true);
   }
 }
 
-// ── PHONE SETUP ──
-function phoneSubmit() {
-  const k = document.getElementById('p-key').value.trim();
-  const t = document.getElementById('p-tok').value.trim();
-  if (!k || !t) { alert('Please enter both your API key and token.'); return; }
-  localStorage.setItem('tk', k);
-  localStorage.setItem('tt', t);
-  document.getElementById('phone-form-view').style.display = 'none';
-  document.getElementById('phone-success-view').style.display = 'block';
+function storeAndLogin(token) {
+  S.token = token;
+  localStorage.setItem('trello_token', token);
+  // Clear token from URL bar for security
+  if (window.location.hash.includes('token=')) {
+    history.replaceState(null, '', window.location.pathname);
+  }
+  loadBoards();
 }
 
-function phoneReset() {
-  document.getElementById('p-key').value = '';
-  document.getElementById('p-tok').value = '';
-  document.getElementById('phone-form-view').style.display = 'block';
-  document.getElementById('phone-success-view').style.display = 'none';
+function logout() {
+  localStorage.removeItem('trello_token');
+  S.token = '';
+  showScreen('login');
 }
 
-// ── TRELLO ──
-async function trello(path, opts={}) {
+// ════════════════════════════════════════
+//  TRELLO API
+// ════════════════════════════════════════
+
+function trello(path, opts = {}) {
   const sep = path.includes('?') ? '&' : '?';
-  const r = await fetch(`${API}${path}${sep}key=${key}&token=${tok}`, opts);
-  if (!r.ok) throw new Error(r.status);
-  return r.json();
+  return fetch(
+    'https://api.trello.com/1' + path + sep + 'key=' + TRELLO_API_KEY + '&token=' + S.token,
+    { headers: { 'Content-Type': 'application/json' }, ...opts }
+  ).then(r => {
+    if (!r.ok) throw new Error('Trello ' + r.status);
+    return r.json();
+  });
 }
+
+// ════════════════════════════════════════
+//  DATA LOADING
+// ════════════════════════════════════════
 
 async function loadBoards() {
-  boards = await trello('/members/me/boards?filter=open&fields=name,id');
-  const p = document.getElementById('board-picker');
-  p.innerHTML = '<option value="">Select a board…</option>';
-  boards.forEach(b => { const o = document.createElement('option'); o.value = b.id; o.textContent = b.name; p.appendChild(o); });
-  if (boards.length) loadBoard(boards[0].id);
+  setLoading(true, 'Loading boards…');
+  try {
+    const boards = await trello('/members/me/boards?filter=open&fields=name,prefs,shortUrl');
+    S.boards = boards;
+    renderBoards();
+    showScreen('boards');
+  } catch (e) {
+    toast('Auth failed — please re-authorize', true);
+    logout();
+  }
+  setLoading(false);
 }
 
-async function loadBoard(id) {
-  if (!id) return;
-  currentBoard = boards.find(b => b.id === id);
-  document.getElementById('board-picker').value = id;
-  document.getElementById('lists-grid').innerHTML = '<div style="display:flex;justify-content:center;padding:40px 0"><div class="spinner"></div></div>';
-  document.getElementById('stats-row').style.display = 'none';
+async function selectBoard(id) {
+  const board = S.boards.find(b => b.id === id);
+  if (!board) return;
+  S.selectedBoard = board;
+  setLoading(true, 'Loading lists…');
   try {
-    [lists, cards] = await Promise.all([
-      trello(`/boards/${id}/lists?filter=open`),
-      trello(`/boards/${id}/cards?fields=name,desc,due,labels,idList,shortUrl`)
+    const [lists, cards] = await Promise.all([
+      trello('/boards/' + id + '/lists?filter=open'),
+      trello('/boards/' + id + '/cards?fields=name,desc,labels,idList,due'),
     ]);
-    renderLists(); renderStats(); rebuildMenu();
-    if (!selListId && lists.length) { selListId = lists[0].id; selListName = lists[0].name; document.getElementById('target-btn').textContent = selListName.slice(0,14) + (selListName.length > 14 ? '… ▾' : ' ▾'); }
-  } catch(e) { toast('Failed to load board', true); }
+    S.lists = lists;
+    S.cards = {};
+    lists.forEach(l => (S.cards[l.id] = []));
+    cards.forEach(c => { if (S.cards[c.idList]) S.cards[c.idList].push(c); });
+    renderLists();
+    showScreen('lists');
+  } catch (e) { toast('Load failed', true); }
+  setLoading(false);
+}
+
+async function archiveCard() {
+  const card = S.selectedCard;
+  setLoading(true, 'Archiving…');
+  try {
+    await trello('/cards/' + card.id, { method: 'PUT', body: JSON.stringify({ closed: true }) });
+    S.cards[S.selectedList.id] = S.cards[S.selectedList.id].filter(c => c.id !== card.id);
+    toast('Card archived ✓');
+    renderCards();
+    showScreen('cards');
+  } catch (e) { toast('Failed to archive', true); }
+  setLoading(false);
+}
+
+async function moveCard(targetListId) {
+  const card = S.selectedCard;
+  setLoading(true, 'Moving…');
+  try {
+    await trello('/cards/' + card.id, {
+      method: 'PUT', body: JSON.stringify({ idList: targetListId }),
+    });
+    S.cards[S.selectedList.id] = S.cards[S.selectedList.id].filter(c => c.id !== card.id);
+    card.idList = targetListId;
+    S.cards[targetListId].push(card);
+    const newList = S.lists.find(l => l.id === targetListId);
+    toast('Moved to ' + (newList ? newList.name : 'list') + ' ✓');
+    S.selectedList = newList || S.selectedList;
+    renderCards();
+    showScreen('cards');
+  } catch (e) { toast('Move failed', true); }
+  setLoading(false);
+}
+
+// ════════════════════════════════════════
+//  RENDER FUNCTIONS
+// ════════════════════════════════════════
+
+function renderBoards() {
+  const grid = document.getElementById('board-grid');
+  grid.innerHTML = S.boards.slice(0, 6).map((b, i) => {
+    const bg = (b.prefs && b.prefs.backgroundColor) || '#1e40af';
+    return '<div class="board-item focusable" tabindex="' + i + '" data-id="' + b.id + '" style="border-color:' + bg + '33;">' +
+      '<div class="board-dot" style="background:' + bg + '"></div>' +
+      '<div class="board-name">' + escH(b.name) + '</div>' +
+      '</div>';
+  }).join('');
+  grid.querySelectorAll('.board-item').forEach(el => {
+    el.addEventListener('click', () => selectBoard(el.dataset.id));
+  });
 }
 
 function renderLists() {
-  const g = document.getElementById('lists-grid'); g.innerHTML = '';
-  lists.forEach(l => {
-    const lc = cards.filter(c => c.idList === l.id);
-    const sec = document.createElement('div');
-    sec.innerHTML = `<div class="list-header"><span class="list-name">${esc(l.name)}</span><span class="list-badge">${lc.length}</span></div><div class="cards-stack" id="s-${l.id}"></div>`;
-    g.appendChild(sec);
-    const stack = sec.querySelector(`#s-${l.id}`);
-    if (!lc.length) { stack.innerHTML = '<div class="empty-state">No cards</div>'; return; }
-    lc.forEach(c => {
-      const d = document.createElement('div'); d.className = 'card-tile'; d.onclick = () => openCard(c, l.name);
-      let pills = '';
-      if (c.due) { const dt = new Date(c.due), od = dt < new Date(); pills += `<span class="pill ${od ? 'pill-danger' : 'pill-warn'}">${dt.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`; }
-      c.labels?.slice(0,2).forEach(lb => { pills += `<span class="pill pill-info">${esc(lb.name||lb.color)}</span>`; });
-      d.innerHTML = `<div class="card-title">${esc(c.name)}</div>${pills ? `<div class="card-footer">${pills}</div>` : ''}`;
-      stack.appendChild(d);
+  document.getElementById('lists-board-title').textContent = S.selectedBoard.name;
+  const cont = document.getElementById('lists-scroll');
+  cont.innerHTML = S.lists.map((l, i) => {
+    const count = (S.cards[l.id] || []).length;
+    return '<div class="list-item focusable" tabindex="' + i + '" data-id="' + l.id + '">' +
+      '<div class="list-name">' + escH(l.name) + '</div>' +
+      '<div class="list-count">' + count + '</div>' +
+      '</div>';
+  }).join('');
+  cont.querySelectorAll('.list-item').forEach(el => {
+    el.addEventListener('click', () => {
+      S.selectedList = S.lists.find(l => l.id === el.dataset.id);
+      renderCards();
+      showScreen('cards');
     });
   });
 }
 
-function renderStats() {
-  const od = cards.filter(c => c.due && new Date(c.due) < new Date()).length;
-  const row = document.getElementById('stats-row'); row.style.display = 'grid';
-  row.innerHTML = `<div class="stat-card"><div class="stat-label">Lists</div><div class="stat-val">${lists.length}</div></div><div class="stat-card"><div class="stat-label">Cards</div><div class="stat-val">${cards.length}</div></div><div class="stat-card"><div class="stat-label">Overdue</div><div class="stat-val ${od ? 'danger' : ''}">${od}</div></div>`;
-}
-
-function openCard(c, listName) {
-  document.getElementById('m-list').textContent = listName;
-  document.getElementById('m-title').textContent = c.name;
-  document.getElementById('m-desc').textContent = c.desc || 'No description';
-  let meta = '';
-  if (c.due) { const dt = new Date(c.due), od = dt < new Date(); meta += `<div class="modal-meta-row">${od?'⚠️':'📅'} Due <span>${dt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</span></div>`; }
-  c.labels?.forEach(l => { meta += `<div class="modal-meta-row">🏷 <span>${esc(l.name||l.color)}</span></div>`; });
-  document.getElementById('m-meta').innerHTML = meta;
-  document.getElementById('m-actions').innerHTML = `<a href="${c.shortUrl}" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none">Open in Trello ↗</a>`;
-  document.getElementById('modal').classList.add('open');
-}
-
-function closeModal() { document.getElementById('modal').classList.remove('open'); }
-function closeModalOut(e) { if (e.target.id === 'modal') closeModal(); }
-
-async function addCard() {
-  const f = document.getElementById('voice-field'), name = f.value.trim();
-  if (!name) { toast('Type or speak a card name', true); return; }
-  if (!selListId) { toast('Select a target list', true); return; }
-  try {
-    const r = await fetch(`${API}/cards?key=${key}&token=${tok}&idList=${selListId}&name=${encodeURIComponent(name)}`, { method: 'POST' });
-    if (!r.ok) throw new Error(r.status);
-    f.value = ''; toast(`Added to ${selListName}`);
-    await loadBoard(currentBoard.id);
-  } catch(e) { toast('Failed to add card', true); }
-}
-
-function rebuildMenu() {
-  const m = document.getElementById('target-menu'); m.innerHTML = '';
-  lists.forEach(l => {
-    const o = document.createElement('div'); o.className = 'target-opt'; o.textContent = l.name;
-    o.onclick = () => { selListId = l.id; selListName = l.name; document.getElementById('target-btn').textContent = l.name.slice(0,14)+(l.name.length>14?'… ▾':' ▾'); m.classList.remove('open'); };
-    m.appendChild(o);
+function renderCards() {
+  document.getElementById('cards-list-title').textContent = S.selectedList.name;
+  const cards = S.cards[S.selectedList.id] || [];
+  const cont = document.getElementById('cards-list');
+  if (!cards.length) {
+    cont.innerHTML = '<div style="padding:20px;color:var(--dim);font-size:16px;text-align:center;">No cards in this list</div>';
+    return;
+  }
+  cont.innerHTML = cards.slice(0, 6).map((c, i) => {
+    const labels = (c.labels || []).map(l => {
+      const col = LABEL_COLORS[l.color] || 'rgba(255,255,255,0.3)';
+      return '<span class="label-chip" style="background:' + col + '22;color:' + col + ';border:1px solid ' + col + '44">' + escH(l.name || l.color || '●') + '</span>';
+    }).join('');
+    return '<div class="card-item focusable" tabindex="' + i + '" data-id="' + c.id + '">' +
+      '<div class="card-name">' + escH(c.name) + '</div>' +
+      (labels ? '<div class="card-labels">' + labels + '</div>' : '') +
+      '</div>';
+  }).join('');
+  cont.querySelectorAll('.card-item').forEach(el => {
+    el.addEventListener('click', () => selectCard(el.dataset.id));
   });
 }
 
-function toggleMenu() { document.getElementById('target-menu').classList.toggle('open'); }
+function selectCard(id) {
+  const card = (S.cards[S.selectedList.id] || []).find(c => c.id === id);
+  if (!card) return;
+  S.selectedCard = card;
 
-function initSpeech() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
-  recognition = new SR(); recognition.lang = 'en-US'; recognition.continuous = false;
-  recognition.onresult = e => { document.getElementById('voice-field').value = e.results[0][0].transcript; stopMic(); };
-  recognition.onerror = () => stopMic(); recognition.onend = () => { if (listening) stopMic(); };
-}
+  document.getElementById('detail-list-name').textContent = S.selectedList.name;
+  document.getElementById('detail-card-name').textContent = card.name;
 
-function toggleMic() { listening ? stopMic() : startMic(); }
-function startMic() {
-  if (!recognition) { toast('Speech not supported here', true); return; }
-  listening = true;
-  const b = document.getElementById('mic-btn'); b.classList.add('active'); b.textContent = '⏹';
-  recognition.start();
-}
-function stopMic() {
-  listening = false;
-  const b = document.getElementById('mic-btn'); b.classList.remove('active'); b.textContent = '🎤';
-  try { recognition.stop(); } catch(e) {}
-}
+  const labelsEl = document.getElementById('detail-labels');
+  labelsEl.innerHTML = (card.labels || []).map(l => {
+    const col = LABEL_COLORS[l.color] || 'rgba(255,255,255,0.3)';
+    return '<span class="label-chip" style="background:' + col + '22;color:' + col + ';border:1px solid ' + col + '44;font-size:12px;padding:3px 10px">' + escH(l.name || l.color) + '</span>';
+  }).join('');
 
-async function refresh() { if (currentBoard) { await loadBoard(currentBoard.id); toast('Synced'); } }
+  const desc = (card.desc || '').trim();
+  document.getElementById('detail-desc').textContent = desc;
+  document.getElementById('detail-desc-label').style.display = desc ? 'block' : 'none';
 
-function logout() { localStorage.removeItem('tk'); localStorage.removeItem('tt'); location.reload(); }
-
-function show(id) {
-  ['waiting-view','connecting-view','main-view'].forEach(v => {
-    document.getElementById(v).style.display = v === id ? 'block' : 'none';
+  document.querySelectorAll('#screen-detail .action-btn').forEach(btn => {
+    btn.onclick = () => {
+      const a = btn.dataset.action;
+      if (a === 'archive') archiveCard();
+      else if (a === 'move') showMoveScreen();
+      else if (a === 'back') showScreen('cards');
+    };
   });
+
+  showScreen('detail');
 }
 
-let tt;
-function toast(msg, err=false) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = `toast show${err?' err':''}`;
-  clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2800);
+function showMoveScreen() {
+  const cont = document.getElementById('move-list');
+  cont.innerHTML = S.lists.map((l, i) => {
+    const isCurrent = l.id === S.selectedList.id;
+    return '<div class="move-item focusable' + (isCurrent ? ' current' : '') + '" tabindex="' + i + '" data-id="' + l.id + '">' +
+      (isCurrent ? '<span class="move-check">✓</span>' : '<span style="width:18px;display:inline-block"></span>') +
+      escH(l.name) + '</div>';
+  }).join('');
+  cont.querySelectorAll('.move-item:not(.current)').forEach(el => {
+    el.addEventListener('click', () => moveCard(el.dataset.id));
+  });
+  showScreen('move');
 }
 
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// ════════════════════════════════════════
+//  NEURAL BAND / CAPTOUCH D-PAD NAVIGATION
+//
+//  Per MRBD docs: Neural Band and captouch
+//  gestures emit ArrowUp/Down/Left/Right
+//  and Enter. No mouse/touch/keyboard.
+//  Every interactive element must be
+//  reachable via these inputs.
+// ════════════════════════════════════════
 
-setInterval(() => {
-  const n = new Date(); document.getElementById('clock').textContent = [n.getHours(), n.getMinutes()].map(x => String(x).padStart(2,'0')).join(':');
-}, 5000);
-document.getElementById('clock').textContent = (()=>{const n=new Date();return[n.getHours(),n.getMinutes()].map(x=>String(x).padStart(2,'0')).join(':')})();
+function getFocusables() {
+  return Array.from(
+    document.getElementById('screen-' + S.currentScreen)
+      .querySelectorAll('.focusable:not([disabled])')
+  );
+}
 
-initSpeech();
-route();
+function moveFocus(dir) {
+  const focusables = getFocusables();
+  if (!focusables.length) return;
+  const idx = focusables.indexOf(document.activeElement);
+  if (idx === -1) { focusables[0].focus(); return; }
+
+  let next;
+
+  if (S.currentScreen === 'boards') {
+    // 2-column grid — map direction to grid position
+    const cols = 2;
+    if (dir === 'right') next = idx + 1;
+    else if (dir === 'left') next = idx - 1;
+    else if (dir === 'up') next = idx - cols;
+    else next = idx + cols;
+    next = Math.max(0, Math.min(focusables.length - 1, next));
+  } else {
+    const isBack = dir === 'up' || dir === 'left';
+    next = isBack
+      ? (idx > 0 ? idx - 1 : focusables.length - 1)
+      : (idx < focusables.length - 1 ? idx + 1 : 0);
+  }
+
+  focusables[next].focus();
+  focusables[next].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+document.addEventListener('keydown', function (e) {
+  switch (e.key) {
+    case DPAD.UP:     moveFocus('up');   break;
+    case DPAD.DOWN:   moveFocus('down'); break;
+    case DPAD.RIGHT:  moveFocus('right'); break;
+    case DPAD.LEFT:
+      if (['lists','cards','detail','move'].includes(S.currentScreen)) goBack();
+      else moveFocus('left');
+      break;
+    case DPAD.SELECT:
+      if (document.activeElement.classList.contains('focusable'))
+        document.activeElement.click();
+      break;
+    case DPAD.BACK: goBack(); break;
+    default: return;
+  }
+  e.preventDefault();
+});
+
+function goBack() {
+  const map = { lists:'boards', cards:'lists', detail:'cards', move:'detail' };
+  const dest = map[S.currentScreen];
+  if (dest) showScreen(dest);
+}
+
+// ════════════════════════════════════════
+//  SCREEN MANAGEMENT
+// ════════════════════════════════════════
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  S.currentScreen = id;
+  setTimeout(() => {
+    const first = document.getElementById('screen-' + id).querySelector('.focusable');
+    if (first) first.focus();
+  }, 60);
+}
+
+// ════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════
+
+function setLoading(on, msg) {
+  const el = document.getElementById('loading');
+  if (msg) el.querySelector('.loading-text').textContent = msg;
+  on ? el.classList.add('show') : el.classList.remove('show');
+}
+
+let toastTimer;
+function toast(msg, isError) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+function escH(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ════════════════════════════════════════
+//  INIT — check for OAuth token in URL
+//  hash on page load (Trello redirect)
+// ════════════════════════════════════════
+(function init() {
+  const hash = window.location.hash;
+  if (hash && hash.includes('token=')) {
+    const token = hash.split('token=')[1].split('&')[0];
+    if (token) { storeAndLogin(token); return; }
+  }
+  if (S.token) {
+    loadBoards();
+  } else {
+    showScreen('login');
+    setTimeout(() => {
+      const btn = document.getElementById('btn-authorize');
+      if (btn) btn.focus();
+    }, 100);
+  }
+})();
 </script>
 </body>
 </html>
