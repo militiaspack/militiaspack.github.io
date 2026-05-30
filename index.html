@@ -480,10 +480,13 @@ function waitLabel(ride) {
 
 // ── API ──
 async function fetchWaitTimes(parkId) {
-  // queue-times.com free public API, no auth needed
-  const res = await fetch(`https://queue-times.com/parks/${parkId}/queue_times.json`);
+  // queue-times.com blocks direct browser requests (CORS), so we route through
+  // allorigins.win — a free public CORS proxy that adds the required headers.
+  const target = encodeURIComponent(`https://queue-times.com/parks/${parkId}/queue_times.json`);
+  const res = await fetch(`https://api.allorigins.win/get?url=${target}`);
   if (!res.ok) throw new Error('HTTP ' + res.status);
-  return res.json();
+  const wrapper = await res.json();
+  return JSON.parse(wrapper.contents);
 }
 
 // ── Rendering ──
