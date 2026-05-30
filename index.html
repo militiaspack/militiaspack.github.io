@@ -1,136 +1,722 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=600, initial-scale=1.0">
-    <title>Trello on Ray-Ban</title>
-    <style>
-        body {margin:0;padding:20px;background:#000;color:#0f0;font-family:system-ui,sans-serif;width:600px;height:600px;overflow:hidden;text-align:center;}
-        h1,h2 {color:#0f0;}
-        input,button {
-            background:#111;color:#0f0;border:2px solid #0f0;
-            padding:16px;margin:10px 0;width:92%;font-size:19px;
-        }
-        button:focus,input:focus {background:#0f0;color:#000;}
-        .hidden {display:none !important;}
-        .card {background:#111;padding:12px;margin:8px 0;border:1px solid #0f0;text-align:left;}
-        .info {font-size:15px;color:#aaa;line-height:1.4;}
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=600, height=600, initial-scale=1.0, user-scalable=no">
+  <title>Universal Orlando Wait Times</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #000000;
+      --surface: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.10);
+      --accent: #ff6a00;
+      --accent2: #00e5ff;
+      --text: #f0f0f0;
+      --muted: rgba(255,255,255,0.45);
+      --green: #00ff99;
+      --red: #ff3a5c;
+      --yellow: #ffd600;
+      --focus-glow: 0 0 0 2px #00e5ff, 0 0 18px rgba(0,229,255,0.35);
+    }
+
+    html, body {
+      width: 600px;
+      height: 600px;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    /* ── SCREENS ── */
+    .screen { display: none; width: 600px; height: 600px; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    /* ── HEADER ── */
+    .header {
+      flex-shrink: 0;
+      padding: 14px 20px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-icon { font-size: 22px; }
+    .header-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--text);
+      text-transform: uppercase;
+    }
+    .header-sub {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: auto;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── PARK SELECTOR ── */
+    .park-list {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 22px 20px;
+      justify-content: center;
+    }
+
+    .park-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 18px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 120ms, background 120ms;
+      min-height: 88px;
+    }
+    .park-card:focus {
+      border-color: var(--accent2);
+      background: rgba(0,229,255,0.06);
+      box-shadow: var(--focus-glow);
+    }
+    .park-emoji { font-size: 30px; flex-shrink: 0; }
+    .park-info { flex: 1; }
+    .park-name {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+    .park-tag {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      margin-top: 3px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .park-arrow {
+      font-size: 18px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .park-card:focus .park-arrow { color: var(--accent2); }
+
+    /* ── RIDE LIST SCREEN ── */
+    .rides-header {
+      flex-shrink: 0;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--accent2);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      padding: 4px 8px;
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      outline: none;
+      min-height: 88px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: border-color 120ms;
+      flex-shrink: 0;
+    }
+    .back-btn:focus {
+      border-color: var(--accent2);
+      box-shadow: var(--focus-glow);
+    }
+    .park-title-bar {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .park-title-bar .ptitle {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+    .park-title-bar .psubtitle {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+    .refresh-btn {
+      background: none;
+      border: 1.5px solid var(--border);
+      color: var(--muted);
+      font-size: 16px;
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+      outline: none;
+      min-height: 44px;
+      transition: border-color 120ms, color 120ms;
+    }
+    .refresh-btn:focus {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      box-shadow: var(--focus-glow);
+    }
+
+    /* ── SCROLL CONTAINER ── */
+    .rides-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0 16px 12px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .rides-scroll::-webkit-scrollbar { width: 4px; }
+    .rides-scroll::-webkit-scrollbar-track { background: transparent; }
+    .rides-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── LAND SECTION ── */
+    .land-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 14px 0 6px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 6px;
+    }
+
+    /* ── RIDE ROW ── */
+    .ride-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 10px;
+      border-radius: 5px;
+      border: 1.5px solid transparent;
+      margin-bottom: 4px;
+      outline: none;
+      cursor: default;
+      transition: border-color 120ms, background 120ms;
+      min-height: 52px;
+    }
+    .ride-row.focusable:focus {
+      border-color: var(--accent2);
+      background: rgba(0,229,255,0.05);
+      box-shadow: var(--focus-glow);
+    }
+    .ride-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-open { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .dot-closed { background: var(--red); }
+    .dot-down { background: var(--yellow); }
+
+    .ride-name {
+      flex: 1;
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      line-height: 1.25;
+    }
+    .ride-wait {
+      flex-shrink: 0;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      min-width: 54px;
+      text-align: right;
+    }
+    .wait-low { color: var(--green); }
+    .wait-med { color: var(--yellow); }
+    .wait-high { color: var(--accent); }
+    .wait-very-high { color: var(--red); }
+    .wait-closed { color: var(--muted); font-size: 13px; }
+
+    /* ── LOADING / ERROR ── */
+    .loading-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--muted);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent2);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .error-icon { font-size: 36px; }
+    .error-msg {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--red);
+      letter-spacing: 0.04em;
+    }
+    .error-hint {
+      font-size: 14px;
+      color: var(--muted);
+      max-width: 320px;
+      line-height: 1.5;
+    }
+
+    /* ── STATUS BAR ── */
+    .status-bar {
+      flex-shrink: 0;
+      height: 28px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+    }
+    .status-item {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .status-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .powered-link {
+      margin-left: auto;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── SUMMARY PILLS ── */
+    .summary-row {
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+      padding: 8px 16px 0;
+    }
+    .summary-pill {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      padding: 3px 8px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .pill-green { border-color: rgba(0,255,153,0.3); color: var(--green); }
+    .pill-red { border-color: rgba(255,58,92,0.3); color: var(--red); }
+
+    /* ── SORT TABS ── */
+    .sort-row {
+      flex-shrink: 0;
+      display: flex;
+      gap: 0;
+      padding: 8px 16px 0;
+    }
+    .sort-btn {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      background: none;
+      border: 1.5px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      outline: none;
+      transition: all 120ms;
+    }
+    .sort-btn:first-child { border-radius: 4px 0 0 4px; }
+    .sort-btn:last-child { border-radius: 0 4px 4px 0; border-left: none; }
+    .sort-btn.active { background: rgba(255,106,0,0.15); border-color: var(--accent); color: var(--accent); }
+    .sort-btn:focus { box-shadow: var(--focus-glow); border-color: var(--accent2); color: var(--accent2); z-index: 1; }
+  </style>
 </head>
 <body>
-    <div id="setup-screen">
-        <h1>Trello on Ray-Ban</h1>
-        <h2>Connect Your Account</h2>
-        <input type="text" id="api-key" placeholder="API Key">
-        <input type="text" id="token" placeholder="Token">
-        <button onclick="connect()">Connect to Trello</button>
-        <p class="info">
-            <a href="https://trello.com/app-key" target="_blank" style="color:#0f0;">Get API Key + Token</a><br>
-            Set token to Never expire
-        </p>
+
+<!-- ═══ PARK SELECTOR SCREEN ═══ -->
+<div id="screen-parks" class="screen active">
+  <div class="header">
+    <span class="header-icon">🎢</span>
+    <span class="header-title">Universal Orlando</span>
+    <span class="header-sub" id="clock-main">--:--</span>
+  </div>
+  <div class="park-list">
+    <div class="park-card focusable" tabindex="0" data-park-id="65" data-park-name="Universal Studios Florida" data-park-tag="STUDIOS · USF">
+      <span class="park-emoji">🎬</span>
+      <div class="park-info">
+        <div class="park-name">Universal Studios</div>
+        <div class="park-tag">Studios · USF</div>
+      </div>
+      <span class="park-arrow">›</span>
     </div>
-
-    <div id="main-screen" class="hidden">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <h2 id="board-name">Boards</h2>
-            <button onclick="logout()" style="width:auto;padding:8px 12px;">Logout</button>
-        </div>
-        <div id="boards-list"></div>
-
-        <div id="cards-view" class="hidden">
-            <button onclick="backToBoards()" style="width:auto;margin-bottom:10px;">← Back</button>
-            <h3 id="list-name"></h3>
-            <div id="cards-list"></div>
-            <input type="text" id="new-card-name" placeholder="New card name">
-            <button onclick="addCard()">+ Add Card</button>
-        </div>
+    <div class="park-card focusable" tabindex="0" data-park-id="64" data-park-name="Islands of Adventure" data-park-tag="ISLANDS · IOA">
+      <span class="park-emoji">🏝️</span>
+      <div class="park-info">
+        <div class="park-name">Islands of Adventure</div>
+        <div class="park-tag">Islands · IOA</div>
+      </div>
+      <span class="park-arrow">›</span>
     </div>
+    <div class="park-card focusable" tabindex="0" data-park-id="238" data-park-name="Epic Universe" data-park-tag="EPIC UNIVERSE · NEW">
+      <span class="park-emoji">🌌</span>
+      <div class="park-info">
+        <div class="park-name">Epic Universe</div>
+        <div class="park-tag">Epic Universe · NEW 2025</div>
+      </div>
+      <span class="park-arrow">›</span>
+    </div>
+  </div>
+  <div class="status-bar">
+    <div class="status-item"><span class="status-dot live"></span>LIVE DATA</div>
+    <a class="powered-link" href="https://queue-times.com/en-US" target="_blank">Powered by Queue-Times.com</a>
+  </div>
+</div>
 
-    <script>
-        const API_BASE = 'https://api.trello.com/1';
-        let apiKey = '', token = '', currentBoardId = '', currentListId = '';
+<!-- ═══ RIDES SCREEN ═══ -->
+<div id="screen-rides" class="screen">
+  <div class="rides-header">
+    <button class="back-btn focusable" id="back-btn" tabindex="0">‹ BACK</button>
+    <div class="park-title-bar">
+      <div class="ptitle" id="rides-park-name">Park</div>
+      <div class="psubtitle" id="rides-updated">Loading…</div>
+    </div>
+    <button class="refresh-btn focusable" id="refresh-btn" tabindex="0" title="Refresh">↻</button>
+  </div>
+  <div class="summary-row" id="summary-row" style="display:none">
+    <span class="summary-pill pill-green" id="pill-open"></span>
+    <span class="summary-pill pill-red" id="pill-closed"></span>
+    <span class="summary-pill" id="pill-avg"></span>
+  </div>
+  <div class="sort-row" id="sort-row" style="display:none">
+    <button class="sort-btn active focusable" id="sort-land" tabindex="0">BY AREA</button>
+    <button class="sort-btn focusable" id="sort-wait" tabindex="0">BY WAIT ↓</button>
+    <button class="sort-btn focusable" id="sort-name" tabindex="0">A–Z</button>
+  </div>
+  <div id="rides-content" class="rides-scroll"></div>
+  <div class="status-bar">
+    <div class="status-item"><span class="status-dot live"></span>LIVE</div>
+    <div class="status-item" id="status-count"></div>
+    <a class="powered-link" href="https://queue-times.com/en-US" target="_blank">Powered by Queue-Times.com</a>
+  </div>
+</div>
 
-        function getUrlParams() {
-            const params = new URLSearchParams(window.location.search);
-            return { key: params.get('key'), token: params.get('token') };
-        }
+<script>
+// ── State ──
+let currentParkId = null;
+let currentParkName = '';
+let ridesData = []; // flat list: { land, name, is_open, wait_time, last_updated }
+let sortMode = 'land'; // 'land' | 'wait' | 'name'
 
-        function showScreen(id) {
-            document.querySelectorAll('div[id$="-screen"]').forEach(s => s.classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
-        }
+// ── Helpers ──
+function pad(n) { return String(n).padStart(2, '0'); }
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock-main').textContent =
+    pad(now.getHours()) + ':' + pad(now.getMinutes());
+}
+updateClock();
+setInterval(updateClock, 10000);
 
-        function connect() {
-            apiKey = document.getElementById('api-key').value.trim();
-            token = document.getElementById('token').value.trim();
-            if (!apiKey || !token) return alert("Enter both fields");
-            localStorage.setItem('trelloKey', apiKey);
-            localStorage.setItem('trelloToken', token);
-            loadBoards();
-        }
+function waitClass(mins) {
+  if (mins === 0) return 'wait-closed';
+  if (mins <= 20) return 'wait-low';
+  if (mins <= 45) return 'wait-med';
+  if (mins <= 75) return 'wait-high';
+  return 'wait-very-high';
+}
+function waitLabel(ride) {
+  if (!ride.is_open) return 'CLOSED';
+  if (ride.wait_time === 0) return 'WALK';
+  return ride.wait_time + ' min';
+}
 
-        async function fetchTrello(endpoint) {
-            const res = await fetch(`${API_BASE}${endpoint}?key=${apiKey}&token=${token}`);
-            if (!res.ok) throw new Error(`Error ${res.status}`);
-            return res.json();
-        }
+// ── API ──
+async function fetchWaitTimes(parkId) {
+  // queue-times.com free public API, no auth needed
+  const res = await fetch(`https://queue-times.com/parks/${parkId}/queue_times.json`);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
 
-        async function loadBoards() {
-            showScreen('main-screen');
-            try {
-                const boards = await fetchTrello('/members/me/boards');
-                const html = boards.map(b => `<button onclick="selectBoard('${b.id}','${b.name.replace(/'/g,"\\'")}')" style="width:92%;">${b.name}</button>`).join('');
-                document.getElementById('boards-list').innerHTML = html || '<p>No boards</p>';
-            } catch (e) { alert('Failed: ' + e.message); }
-        }
+// ── Rendering ──
+function buildRideList(data) {
+  ridesData = [];
+  (data.lands || []).forEach(land => {
+    (land.rides || []).forEach(ride => {
+      ridesData.push({
+        land: land.name,
+        name: ride.name,
+        is_open: ride.is_open,
+        wait_time: ride.wait_time,
+        last_updated: ride.last_updated
+      });
+    });
+  });
+}
 
-        async function selectBoard(id, name) {
-            currentBoardId = id;
-            document.getElementById('board-name').textContent = name;
-            const lists = await fetchTrello(`/boards/${id}/lists`);
-            if (lists.length > 0) {
-                currentListId = lists[0].id;
-                document.getElementById('list-name').textContent = lists[0].name;
-                loadCards(lists[0].id);
-            }
-        }
+function renderRides() {
+  const container = document.getElementById('rides-content');
+  container.innerHTML = '';
 
-        async function loadCards(listId) {
-            document.getElementById('cards-view').classList.remove('hidden');
-            const cards = await fetchTrello(`/lists/${listId}/cards`);
-            const html = cards.map(c => `<div class="card">${c.name}</div>`).join('');
-            document.getElementById('cards-list').innerHTML = html || '<p>No cards</p>';
-        }
+  const openRides = ridesData.filter(r => r.is_open);
+  const closedRides = ridesData.filter(r => !r.is_open);
+  const avgWait = openRides.length
+    ? Math.round(openRides.reduce((s, r) => s + r.wait_time, 0) / openRides.length)
+    : 0;
 
-        async function addCard() {
-            const name = document.getElementById('new-card-name').value.trim();
-            if (!name) return;
-            await fetch(`${API_BASE}/cards?key=${apiKey}&token=${token}&name=${encodeURIComponent(name)}&idList=${currentListId}`, {method:'POST'});
-            document.getElementById('new-card-name').value = '';
-            loadCards(currentListId);
-        }
+  // Update summary pills
+  document.getElementById('pill-open').textContent = openRides.length + ' OPEN';
+  document.getElementById('pill-closed').textContent = closedRides.length + ' CLOSED';
+  document.getElementById('pill-avg').textContent = 'AVG ' + avgWait + ' MIN';
+  document.getElementById('summary-row').style.display = 'flex';
+  document.getElementById('sort-row').style.display = 'flex';
+  document.getElementById('status-count').textContent = ridesData.length + ' RIDES';
 
-        function backToBoards() { document.getElementById('cards-view').classList.add('hidden'); }
+  if (sortMode === 'land') {
+    // Group by land
+    const lands = {};
+    ridesData.forEach(r => {
+      if (!lands[r.land]) lands[r.land] = [];
+      lands[r.land].push(r);
+    });
+    Object.keys(lands).forEach(landName => {
+      const label = document.createElement('div');
+      label.className = 'land-label';
+      label.textContent = landName;
+      container.appendChild(label);
+      lands[landName].forEach(ride => {
+        container.appendChild(makeRideRow(ride));
+      });
+    });
+  } else {
+    const sorted = [...ridesData].sort((a, b) => {
+      if (sortMode === 'wait') {
+        if (!a.is_open && b.is_open) return 1;
+        if (a.is_open && !b.is_open) return -1;
+        return b.wait_time - a.wait_time;
+      }
+      return a.name.localeCompare(b.name);
+    });
+    sorted.forEach(ride => container.appendChild(makeRideRow(ride)));
+  }
 
-        function logout() {
-            if (confirm('Logout?')) location.reload();
-        }
+  // Re-focus first focusable in content
+  const focusables = getAllFocusables();
+  const firstInContent = focusables.find(f => container.contains(f));
+  if (firstInContent) firstInContent.focus();
+}
 
-        window.onload = () => {
-            const p = getUrlParams();
-            const savedKey = localStorage.getItem('trelloKey');
-            const savedToken = localStorage.getItem('trelloToken');
+function makeRideRow(ride) {
+  const row = document.createElement('div');
+  row.className = 'ride-row focusable';
+  row.tabIndex = 0;
 
-            if (p.key && p.token) {
-                apiKey = p.key; token = p.token;
-                loadBoards();
-            } else if (savedKey && savedToken) {
-                apiKey = savedKey; token = savedToken;
-                loadBoards();
-            } else {
-                showScreen('setup-screen');
-            }
-        };
-    </script>
+  const dotCls = !ride.is_open ? 'dot-closed' : (ride.wait_time === 0 ? 'dot-open' : 'dot-open');
+  const waitCls = !ride.is_open ? 'wait-closed' : waitClass(ride.wait_time);
+  const label = waitLabel(ride);
+
+  row.innerHTML = `
+    <span class="ride-status-dot ${dotCls}"></span>
+    <span class="ride-name">${escHtml(ride.name)}</span>
+    <span class="ride-wait ${waitCls}">${escHtml(label)}</span>
+  `;
+  return row;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Screen transitions ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // focus first focusable
+  setTimeout(() => {
+    const f = getAllFocusables()[0];
+    if (f) f.focus();
+  }, 50);
+}
+
+function showLoading() {
+  const c = document.getElementById('rides-content');
+  c.innerHTML = `<div class="loading-state"><div class="spinner"></div><div>FETCHING WAIT TIMES…</div></div>`;
+  document.getElementById('summary-row').style.display = 'none';
+  document.getElementById('sort-row').style.display = 'none';
+  document.getElementById('rides-updated').textContent = 'Loading…';
+  document.getElementById('status-count').textContent = '';
+}
+
+function showError(msg) {
+  const c = document.getElementById('rides-content');
+  c.innerHTML = `<div class="error-state">
+    <div class="error-icon">⚠️</div>
+    <div class="error-msg">${escHtml(msg)}</div>
+    <div class="error-hint">Make sure you're connected to the internet. Press ↻ to retry.</div>
+  </div>`;
+  document.getElementById('summary-row').style.display = 'none';
+  document.getElementById('sort-row').style.display = 'none';
+  document.getElementById('rides-updated').textContent = 'Error';
+  // Focus refresh
+  setTimeout(() => document.getElementById('refresh-btn').focus(), 50);
+}
+
+async function loadPark(parkId) {
+  showLoading();
+  try {
+    const data = await fetchWaitTimes(parkId);
+    buildRideList(data);
+    const now = new Date();
+    document.getElementById('rides-updated').textContent =
+      'Updated ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    renderRides();
+  } catch (err) {
+    showError('Failed to load: ' + err.message);
+  }
+}
+
+// ── Navigation / Focus ──
+function getAllFocusables() {
+  const screen = document.querySelector('.screen.active');
+  return Array.from(screen.querySelectorAll('.focusable:not([disabled])'));
+}
+
+function moveFocus(dir) {
+  const focusables = getAllFocusables();
+  if (!focusables.length) return;
+  const idx = focusables.indexOf(document.activeElement);
+  if (idx === -1) { focusables[0].focus(); return; }
+  let next;
+  if (dir === 'up' || dir === 'left') {
+    next = idx > 0 ? idx - 1 : focusables.length - 1;
+  } else {
+    next = idx < focusables.length - 1 ? idx + 1 : 0;
+  }
+  focusables[next].focus();
+  focusables[next].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+document.addEventListener('keydown', function(e) {
+  switch(e.key) {
+    case 'ArrowUp':    moveFocus('up');    e.preventDefault(); break;
+    case 'ArrowDown':  moveFocus('down');  e.preventDefault(); break;
+    case 'ArrowLeft':  moveFocus('left');  e.preventDefault(); break;
+    case 'ArrowRight': moveFocus('right'); e.preventDefault(); break;
+    case 'Enter':
+      if (document.activeElement && document.activeElement.classList.contains('focusable')) {
+        document.activeElement.click();
+        e.preventDefault();
+      }
+      break;
+    case 'Escape':
+      if (document.getElementById('screen-rides').classList.contains('active')) {
+        goBack();
+      }
+      break;
+  }
+});
+
+// ── Park cards ──
+document.querySelectorAll('.park-card').forEach(card => {
+  card.addEventListener('click', function() {
+    currentParkId = parseInt(card.dataset.parkId);
+    currentParkName = card.dataset.parkName;
+    document.getElementById('rides-park-name').textContent = currentParkName;
+    sortMode = 'land';
+    updateSortBtns();
+    showScreen('screen-rides');
+    loadPark(currentParkId);
+  });
+});
+
+// ── Back ──
+function goBack() {
+  showScreen('screen-parks');
+  ridesData = [];
+}
+document.getElementById('back-btn').addEventListener('click', goBack);
+
+// ── Refresh ──
+document.getElementById('refresh-btn').addEventListener('click', function() {
+  if (currentParkId) loadPark(currentParkId);
+});
+
+// ── Sort ──
+function updateSortBtns() {
+  document.getElementById('sort-land').classList.toggle('active', sortMode === 'land');
+  document.getElementById('sort-wait').classList.toggle('active', sortMode === 'wait');
+  document.getElementById('sort-name').classList.toggle('active', sortMode === 'name');
+}
+document.getElementById('sort-land').addEventListener('click', function() {
+  sortMode = 'land'; updateSortBtns(); renderRides();
+});
+document.getElementById('sort-wait').addEventListener('click', function() {
+  sortMode = 'wait'; updateSortBtns(); renderRides();
+});
+document.getElementById('sort-name').addEventListener('click', function() {
+  sortMode = 'name'; updateSortBtns(); renderRides();
+});
+
+// ── Auto-focus on load ──
+setTimeout(() => {
+  const f = getAllFocusables()[0];
+  if (f) f.focus();
+}, 100);
+
+// ── Auto-refresh every 5 min while rides screen is active ──
+setInterval(() => {
+  if (document.getElementById('screen-rides').classList.contains('active') && currentParkId) {
+    loadPark(currentParkId);
+  }
+}, 5 * 60 * 1000);
+</script>
 </body>
 </html>
